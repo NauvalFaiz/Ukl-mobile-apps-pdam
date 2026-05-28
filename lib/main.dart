@@ -10,6 +10,8 @@ import 'package:uklmobileapps/core/storage/token_storage.dart';
 import 'package:uklmobileapps/features/auth/data/datasources/auth_service.dart';
 import 'package:uklmobileapps/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:uklmobileapps/features/onboarding/presentation/views/splash_screen.dart';
+import 'package:uklmobileapps/features/admin/data/datasources/admin_service.dart';
+import 'package:uklmobileapps/features/admin/presentation/bloc/admin_profile_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,18 +28,21 @@ void main() async {
   final dio = Dio();
   final apiClient = ApiClient(dio: dio, tokenStorage: tokenStorage);
   final authService = AuthService(apiClient: apiClient);
+  final adminService = AdminService(apiClient: apiClient);
 
-  runApp(MyApp(tokenStorage: tokenStorage, authService: authService));
+  runApp(MyApp(tokenStorage: tokenStorage, authService: authService, adminService: adminService));
 }
 
 class MyApp extends StatelessWidget {
   final TokenStorage tokenStorage;
   final AuthService authService;
+  final AdminService adminService;
 
   const MyApp({
     super.key,
     required this.tokenStorage,
     required this.authService,
+    required this.adminService,
   });
 
   @override
@@ -50,6 +55,9 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<OnboardingCubit>(
           create: (_) => OnboardingCubit()..checkOnboardingStatus(),
+        ),
+        BlocProvider<AdminProfileBloc>(
+          create: (context) => AdminProfileBloc(adminService: adminService),
         ),
       ],
       child: MaterialApp(

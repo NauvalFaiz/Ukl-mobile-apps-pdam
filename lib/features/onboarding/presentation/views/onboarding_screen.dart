@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:uklmobileapps/features/onboarding/presentation/bloc/onboarding_cubit.dart';
+import 'package:uklmobileapps/features/admin/presentation/views/admin_registration_page.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -53,7 +54,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         title: "Notifikasi Real-time",
         subtitle:
             "Dapatkan informasi instan mengenai gangguan layanan, info pemeliharaan, hingga pengingat jatuh tempo.",
-        secret_icon: "!",
+        secret_icon: Amicons.remix_question,
       ),
     ];
 
@@ -158,7 +159,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     required Color iconColor,
     required String title,
     required String subtitle,
-    String? secret_icon,
+    IconData? secret_icon,
   }) {
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -171,21 +172,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 right: 24,
                 child: GestureDetector(
                   onTap: () {
-                    print("Secret icon ditekan!");
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AdminRegistrationPage(),
+                      ),
+                    );
                   },
                   child: Container(
-                    padding: EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: iconColor.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Center(
-                      child: Text(
+                      child: Icon(
                         secret_icon,
-                        style: TextStyle(
-                          fontSize: 25,
-                          fontWeight: FontWeight.bold,
-                        ),
                       ),
                     ),
                   ),

@@ -67,7 +67,7 @@ class _LoginPageState extends State<LoginPage> {
                 labelText: "Password",
                 isPassword: true,
               ),
-              ElevatedButton(onPressed: _login, child: const Text('Submit')),
+              ElevatedButton(onPressed: _login, child: const Text('Login')),
             ],
           ),
         ),
