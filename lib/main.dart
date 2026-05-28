@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import 'package:uklmobileapps/features/auth/presentation/views/login_page.dart';
@@ -12,6 +13,13 @@ import 'package:uklmobileapps/features/onboarding/presentation/views/splash_scre
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    print("Peringatan: File .env tidak ditemukan, menggunakan fallback URL.");
+  }
+
   final prefs = await SharedPreferences.getInstance();
   final tokenStorage = TokenStorage(prefs);
 

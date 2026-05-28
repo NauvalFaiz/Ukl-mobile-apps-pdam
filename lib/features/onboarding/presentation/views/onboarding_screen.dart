@@ -1,3 +1,4 @@
+import 'package:amicons/amicons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -52,6 +53,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         title: "Notifikasi Real-time",
         subtitle:
             "Dapatkan informasi instan mengenai gangguan layanan, info pemeliharaan, hingga pengingat jatuh tempo.",
+        secret_icon: "!",
       ),
     ];
 
@@ -156,44 +158,82 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     required Color iconColor,
     required String title,
     required String subtitle,
+    String? secret_icon,
   }) {
-    return Container(
-      width: double.infinity,
-      color: backgroundColor,
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
-              shape: BoxShape.circle,
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            if (secret_icon != null)
+              Positioned(
+                top: 15,
+                right: 24,
+                child: GestureDetector(
+                  onTap: () {
+                    print("Secret icon ditekan!");
+                  },
+                  child: Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: iconColor.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        secret_icon,
+                        style: TextStyle(
+                          fontSize: 25,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        // ignore: deprecated_member_use
+                        color: iconColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(icon, size: 100, color: iconColor),
+                    ),
+                    const SizedBox(height: 48),
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      subtitle,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.grey.shade700,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 60),
+                  ],
+                ),
+              ),
             ),
-            child: Icon(icon, size: 100, color: iconColor),
-          ),
-          const SizedBox(height: 48),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 15,
-              color: Colors.grey.shade700,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 60),
-        ],
+          ],
+        ),
       ),
     );
   }
