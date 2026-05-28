@@ -2,29 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
-
-import 'blocs/auth/auth_bloc.dart';
-import 'services/api_client.dart';
-import 'services/auth_service.dart';
-import 'shared/token_storage.dart';
-import 'views/splash_screen.dart';
+import 'package:uklmobileapps/features/auth/presentation/views/login_page.dart';
+import 'package:uklmobileapps/features/onboarding/presentation/bloc/onboarding_cubit.dart';
+import 'package:uklmobileapps/core/network/api_client.dart';
+import 'package:uklmobileapps/core/storage/token_storage.dart';
+import 'package:uklmobileapps/features/auth/data/datasources/auth_service.dart';
+import 'package:uklmobileapps/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:uklmobileapps/features/onboarding/presentation/views/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // 1. Inisialisasi Local Storage
   final prefs = await SharedPreferences.getInstance();
   final tokenStorage = TokenStorage(prefs);
 
-  // 2. Inisialisasi API Client & Service
   final dio = Dio();
   final apiClient = ApiClient(dio: dio, tokenStorage: tokenStorage);
   final authService = AuthService(apiClient: apiClient);
 
-  runApp(MyApp(
-    tokenStorage: tokenStorage,
-    authService: authService,
-  ));
+  runApp(MyApp(tokenStorage: tokenStorage, authService: authService));
 }
 
 class MyApp extends StatelessWidget {
@@ -42,20 +37,19 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthBloc>(
-          create: (context) => AuthBloc(
-            authService: authService,
-            tokenStorage: tokenStorage,
-          ),
+          create: (context) =>
+              AuthBloc(authService: authService, tokenStorage: tokenStorage),
+        ),
+        BlocProvider<OnboardingCubit>(
+          create: (_) => OnboardingCubit()..checkOnboardingStatus(),
         ),
       ],
       child: MaterialApp(
         title: 'PDAM App Test',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-        ),
-        // Mulai dari SplashScreen
+        theme: ThemeData(primarySwatch: Colors.blue),
         home: const SplashScreen(),
+        routes: {'/login': (context) => const LoginPage()},
       ),
     );
   }
