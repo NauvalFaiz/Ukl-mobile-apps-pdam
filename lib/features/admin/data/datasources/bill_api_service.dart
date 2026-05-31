@@ -7,11 +7,16 @@ class BillApiService {
 
   BillApiService({required this.apiClient});
 
-  Future<List<BillModel>> getAllBills() async {
+  Future<List<BillModel>> getAllBills({int page = 1, int limit = 10}) async {
     try {
-      final response = await apiClient.dio.get('/bills');
+      final response = await apiClient.dio.get(
+        '/bills',
+        queryParameters: {'page': page, 'limit': limit},
+      );
       if (response.statusCode == 200 && response.data['success']) {
-        final List data = response.data['data'];
+        final rawData = response.data['data'];
+        // Support both paginated object and plain array
+        final List data = rawData is List ? rawData : (rawData['data'] ?? rawData);
         return data.map((json) => BillModel.fromJson(json)).toList();
       }
       throw Exception(response.data['message'] ?? 'Failed to fetch bills');
@@ -35,7 +40,8 @@ class BillApiService {
   Future<BillModel> createBill(Map<String, dynamic> data) async {
     try {
       final response = await apiClient.dio.post('/bills', data: data);
-      if ((response.statusCode == 200 || response.statusCode == 201) && response.data['success']) {
+      if ((response.statusCode == 200 || response.statusCode == 201) &&
+          response.data['success']) {
         return BillModel.fromJson(response.data['data']);
       }
       throw Exception(response.data['message'] ?? 'Failed to create bill');

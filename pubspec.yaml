@@ -79,6 +79,9 @@ flutter:
     - assets/ilustrasi3.svg
     - assets/buttonscirt.svg
     - assets/warning.svg
+    - assets/card_register-login.svg
+    - assets/register.svg
+    - assets/Close.svg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

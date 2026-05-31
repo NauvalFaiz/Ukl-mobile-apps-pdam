@@ -20,22 +20,66 @@ class CustomerBillPage extends StatefulWidget {
 class _CustomerBillPageState extends State<CustomerBillPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final ImagePicker _picker = ImagePicker();
+  final ScrollController _paymentScrollController = ScrollController();
   int? _selectedUnpaidBillId;
+
+  // Pagination state for history tab
+  final List _allPayments = [];
+  int _paymentPage = 1;
+  bool _paymentLoading = false;
+  bool _paymentHasMore = true;
+  static const int _pageSize = 10;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _loadData();
+
+    _paymentScrollController.addListener(() {
+      if (_paymentScrollController.position.pixels >=
+          _paymentScrollController.position.maxScrollExtent - 200) {
+        _loadMorePayments();
+      }
+    });
   }
 
   void _loadData() {
     context.read<CustomerMeBloc>().add(FetchDashboardData());
+    // Reset and load first page of payments
+    setState(() {
+      _allPayments.clear();
+      _paymentPage = 1;
+      _paymentHasMore = true;
+    });
+    _loadMorePayments();
+  }
+
+  Future<void> _loadMorePayments() async {
+    if (_paymentLoading || !_paymentHasMore) return;
+    setState(() => _paymentLoading = true);
+    try {
+      final payments = await context.read<CustomerMeBloc>().apiService.getMyPayments(
+        page: _paymentPage,
+        limit: _pageSize,
+      );
+      if (!mounted) return;
+      setState(() {
+        _allPayments.addAll(payments);
+        _paymentPage++;
+        _paymentHasMore = payments.length == _pageSize;
+        _paymentLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _paymentLoading = false);
+    }
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _paymentScrollController.dispose();
     super.dispose();
   }
 
@@ -254,115 +298,137 @@ class _CustomerBillPageState extends State<CustomerBillPage> with SingleTickerPr
     return const Center(child: Text('Memuat data...'));
   }
 
-  Widget _buildHistoryTab() {
-    // For History, we need to fetch payments. Since we are in the same page, we can use a FutureBuilder 
-    // or trigger a fetch for payments if it hasn't been fetched.
-    // The easiest way for now is to use the existing ApiService directly inside a FutureBuilder for this tab to keep it isolated,
-    // or expand CustomerDashboardLoaded to hold payments too.
-    return FutureBuilder(
-      future: context.read<CustomerMeBloc>().apiService.getMyPayments(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }
-        final payments = snapshot.data as List;
-        if (payments.isEmpty) return const Center(child: Text('Belum ada riwayat pembayaran.'));
 
-        return ListView.builder(
-          padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 120),
-          itemCount: payments.length,
-          itemBuilder: (context, index) {
-            final p = payments[index];
-            return Card(
-              child: ListTile(
-                leading: const Icon(Icons.receipt),
-                title: Text('Bill ID: ${p.billId}'),
-                subtitle: Text('Dibuat: ${p.createdAt}'),
-                trailing: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: p.verified ? Colors.green : Colors.orange,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    p.verified ? 'Berhasil' : 'Menunggu Admin',
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
-                  ),
+  Widget _buildHistoryTab() {
+    if (_allPayments.isEmpty && _paymentLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_allPayments.isEmpty && !_paymentLoading) {
+      return const Center(child: Text('Belum ada riwayat pembayaran.'));
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async => _loadData(),
+      child: ListView.builder(
+        controller: _paymentScrollController,
+        padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 120),
+        itemCount: _allPayments.length + (_paymentLoading || _paymentHasMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == _allPayments.length) {
+            // Footer: loading atau "semua sudah dimuat"
+            if (_paymentLoading) {
+              return const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            return const Padding(
+              padding: EdgeInsets.all(12),
+              child: Center(
+                child: Text(
+                  'Semua riwayat telah ditampilkan',
+                  style: TextStyle(color: Colors.grey),
                 ),
-                onTap: () {
-                  if (p.file.isEmpty) return;
-                  showDialog(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      title: const Text('Bukti Pembayaran'),
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => FullScreenImagePage(
-                                    imageUrl: '${ApiConstants.baseUrl}/payment-proof/${Uri.encodeComponent(p.file)}',
-                                    tag: 'payment_image_customer_${p.id}',
-                                  ),
+              ),
+            );
+          }
+
+          final p = _allPayments[index];
+          return Card(
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: p.verified ? Colors.green.shade100 : Colors.orange.shade100,
+                child: Icon(
+                  p.verified ? Icons.verified : Icons.hourglass_top,
+                  color: p.verified ? Colors.green : Colors.orange,
+                  size: 20,
+                ),
+              ),
+              title: Text('Tagihan #${p.billId}'),
+              subtitle: Text('Dibuat: ${p.createdAt}'),
+              trailing: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: p.verified ? Colors.green : Colors.orange,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  p.verified ? 'Berhasil' : 'Menunggu Admin',
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                ),
+              ),
+              onTap: () {
+                if (p.file.isEmpty) return;
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Bukti Pembayaran'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => FullScreenImagePage(
+                                  imageUrl:
+                                      '${ApiConstants.baseUrl}/payment-proof/${Uri.encodeComponent(p.file)}',
+                                  tag: 'payment_image_customer_${p.id}',
                                 ),
-                              );
-                            },
-                            child: Hero(
-                              tag: 'payment_image_customer_${p.id}',
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  '${ApiConstants.baseUrl}/payment-proof/${Uri.encodeComponent(p.file)}',
-                                  cacheWidth: 800,
-                                  fit: BoxFit.contain,
-                              loadingBuilder: (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return const SizedBox(
+                              ),
+                            );
+                          },
+                          child: Hero(
+                            tag: 'payment_image_customer_${p.id}',
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                '${ApiConstants.baseUrl}/payment-proof/${Uri.encodeComponent(p.file)}',
+                                cacheWidth: 800,
+                                fit: BoxFit.contain,
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return const SizedBox(
+                                    height: 150,
+                                    child: Center(child: CircularProgressIndicator()),
+                                  );
+                                },
+                                errorBuilder: (context, error, stackTrace) => Container(
                                   height: 150,
-                                  child: Center(child: CircularProgressIndicator()),
-                                );
-                              },
-                              errorBuilder: (context, error, stackTrace) => Container(
-                                height: 150,
-                                color: Colors.grey.shade200,
-                                child: const Center(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.broken_image, size: 50, color: Colors.grey),
-                                      SizedBox(height: 8),
-                                      Text('Gambar tidak ditemukan', style: TextStyle(color: Colors.grey)),
-                                    ],
+                                  color: Colors.grey.shade200,
+                                  child: const Center(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                                        SizedBox(height: 8),
+                                        Text('Gambar tidak ditemukan',
+                                            style: TextStyle(color: Colors.grey)),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                          ),
-                          ),
-                        ],
-                      
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx),
-                          child: const Text('Tutup'),
                         ),
                       ],
                     ),
-                  );
-                },
-              ),
-            );
-          },
-        );
-      },
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Tutup'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      ),
     );
   }
 }
+

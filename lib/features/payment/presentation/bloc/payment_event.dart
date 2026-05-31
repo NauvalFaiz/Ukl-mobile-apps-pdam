@@ -9,6 +9,8 @@ abstract class PaymentEvent extends Equatable {
 
 class FetchAllPayments extends PaymentEvent {}
 
+class FetchMorePayments extends PaymentEvent {}
+
 class VerifyPaymentEvent extends PaymentEvent {
   final int id;
   const VerifyPaymentEvent(this.id);

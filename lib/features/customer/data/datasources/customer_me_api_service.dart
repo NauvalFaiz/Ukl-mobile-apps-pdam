@@ -46,11 +46,16 @@ class CustomerMeApiService {
     }
   }
 
-  Future<List<PaymentModel>> getMyPayments() async {
+  Future<List<PaymentModel>> getMyPayments({int page = 1, int limit = 10}) async {
     try {
-      final response = await apiClient.dio.get('/payments/me');
+      final response = await apiClient.dio.get(
+        '/payments/me',
+        queryParameters: {'page': page, 'limit': limit},
+      );
       if (response.statusCode == 200 && response.data['success']) {
-        final List data = response.data['data'];
+        final rawData = response.data['data'];
+        // Support both paginated object and plain array
+        final List data = rawData is List ? rawData : (rawData['data'] ?? rawData);
         return data.map((json) => PaymentModel.fromJson(json)).toList();
       }
       throw Exception(response.data['message'] ?? 'Failed to fetch my payments');

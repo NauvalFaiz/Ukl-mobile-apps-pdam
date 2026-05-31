@@ -3,7 +3,7 @@ import 'package:uklmobileapps/features/bill/data/models/bill_model.dart';
 
 abstract class BillState extends Equatable {
   const BillState();
-  
+
   @override
   List<Object?> get props => [];
 }
@@ -15,9 +15,43 @@ class BillLoading extends BillState {}
 class BillLoaded extends BillState {
   final List<BillModel> bills;
   final List<BillModel> allBills;
-  const BillLoaded(this.bills, this.allBills);
+  final int currentPage;
+  final bool hasReachedMax;
+
+  const BillLoaded(
+    this.bills,
+    this.allBills, {
+    this.currentPage = 1,
+    this.hasReachedMax = false,
+  });
+
+  BillLoaded copyWith({
+    List<BillModel>? bills,
+    List<BillModel>? allBills,
+    int? currentPage,
+    bool? hasReachedMax,
+  }) {
+    return BillLoaded(
+      bills ?? this.bills,
+      allBills ?? this.allBills,
+      currentPage: currentPage ?? this.currentPage,
+      hasReachedMax: hasReachedMax ?? this.hasReachedMax,
+    );
+  }
+
   @override
-  List<Object?> get props => [bills, allBills];
+  List<Object?> get props => [bills, allBills, currentPage, hasReachedMax];
+}
+
+class BillLoadingMore extends BillState {
+  final List<BillModel> bills;
+  final List<BillModel> allBills;
+  final int currentPage;
+
+  const BillLoadingMore(this.bills, this.allBills, this.currentPage);
+
+  @override
+  List<Object?> get props => [bills, allBills, currentPage];
 }
 
 class BillOperationLoading extends BillState {}

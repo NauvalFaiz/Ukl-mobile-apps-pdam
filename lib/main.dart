@@ -27,7 +27,6 @@ import 'package:uklmobileapps/features/payment/presentation/bloc/payment_bloc.da
 import 'package:uklmobileapps/features/customer/presentation/bloc/customer_me_bloc.dart';
 import 'package:uklmobileapps/features/customer/presentation/views/customer_dashboard.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -50,16 +49,18 @@ void main() async {
   final paymentApiService = PaymentApiService(apiClient: apiClient);
   final customerMeApiService = CustomerMeApiService(apiClient: apiClient);
 
-  runApp(MyApp(
-    tokenStorage: tokenStorage, 
-    authService: authService, 
-    adminService: adminService,
-    serviceApiService: serviceApiService,
-    customerApiService: customerApiService,
-    billApiService: billApiService,
-    paymentApiService: paymentApiService,
-    customerMeApiService: customerMeApiService,
-  ));
+  runApp(
+    MyApp(
+      tokenStorage: tokenStorage,
+      authService: authService,
+      adminService: adminService,
+      serviceApiService: serviceApiService,
+      customerApiService: customerApiService,
+      billApiService: billApiService,
+      paymentApiService: paymentApiService,
+      customerMeApiService: customerMeApiService,
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -88,6 +89,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+        // ── Repository Providers ────────────────────────────
+        RepositoryProvider<ServiceApiService>.value(value: serviceApiService),
+        RepositoryProvider<CustomerApiService>.value(value: customerApiService),
+        // ── Bloc Providers ────────────────────────────────
         BlocProvider<AuthBloc>(
           create: (context) =>
               AuthBloc(authService: authService, tokenStorage: tokenStorage),
@@ -115,9 +120,21 @@ class MyApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
+        theme: ThemeData(
+          // Mengubah warna kursor dan warna blok teks (Ctrl+A) untuk semua inputan di aplikasi
+          textSelectionTheme: TextSelectionThemeData(
+            cursorColor: const Color(0xFF1A6CFF), // Warna garis ketik berkedip
+            selectionColor: const Color(
+              0xFF1A6CFF,
+              // ignore: deprecated_member_use
+            ).withOpacity(0.3), // Warna blok Ctrl+A
+            selectionHandleColor: const Color(
+              0xFF1A6CFF,
+            ), // Warna balon penarik seleksi di HP
+          ),
+        ),
         title: 'PDAM App Test',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(primarySwatch: Colors.blue),
         home: const OnboardingScreen(),
         routes: {
           '/login': (context) => const LoginPage(),

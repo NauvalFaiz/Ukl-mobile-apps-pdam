@@ -9,6 +9,8 @@ abstract class BillEvent extends Equatable {
 
 class FetchAllBills extends BillEvent {}
 
+class FetchMoreBills extends BillEvent {}
+
 class SearchBillById extends BillEvent {
   final String query;
   const SearchBillById(this.query);
