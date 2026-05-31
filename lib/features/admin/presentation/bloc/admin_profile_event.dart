@@ -13,7 +13,7 @@ class UpdateAdminProfileEvent extends AdminProfileEvent {
   final int id;
   final String name;
   final String phone;
-  final String username; // Ditambahkan field username
+  final String username; 
   final String? password;
 
   const UpdateAdminProfileEvent({

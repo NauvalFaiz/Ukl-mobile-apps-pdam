@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uklmobileapps/features/admin/data/datasources/customer_api_service.dart';
-import 'package:uklmobileapps/features/admin/presentation/bloc/customer/customer_event.dart';
-import 'package:uklmobileapps/features/admin/presentation/bloc/customer/customer_state.dart';
+import 'package:uklmobileapps/features/customer/presentation/bloc/customer_event.dart';
+import 'package:uklmobileapps/features/customer/presentation/bloc/customer_state.dart';
 
 class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
   final CustomerApiService apiService;

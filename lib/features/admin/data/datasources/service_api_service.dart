@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:uklmobileapps/core/network/api_client.dart';
-import 'package:uklmobileapps/features/service/data/models/service_model.dart';
+import 'package:uklmobileapps/features/admin/data/service/models/service_model.dart';
 
 class ServiceApiService {
   final ApiClient apiClient;

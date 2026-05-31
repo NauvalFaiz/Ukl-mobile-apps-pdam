@@ -113,7 +113,7 @@ class _CustomerBillPageState extends State<CustomerBillPage> with SingleTickerPr
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true, // TETAP ADA: Sesuai keinginan agar navbar menembus body
+      extendBody: true, 
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: const Text('Tagihan & Pembayaran'),
@@ -246,7 +246,6 @@ class _CustomerBillPageState extends State<CustomerBillPage> with SingleTickerPr
                   ),
                 ),
               ),
-            // SIZEDBOX PENAHAN TETAP ADA: Menghindari ketutupan navbar akibat extendBody
             const SizedBox(height: 120),
           ],
         ),

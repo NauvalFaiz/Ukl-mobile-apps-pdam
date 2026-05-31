@@ -1,9 +1,8 @@
-import 'package:amicons/amicons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:carousel_slider/carousel_slider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:uklmobileapps/features/onboarding/presentation/bloc/onboarding_cubit.dart';
-import 'package:uklmobileapps/features/admin/presentation/views/admin_registration_page.dart';
+import 'package:uklmobileapps/features/onboarding/presentation/views/widgets/pageonboarding.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -13,225 +12,140 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  final CarouselSliderController _carouselController =
-      CarouselSliderController();
+  final PageController _pageController = PageController();
   int _currentSlideIndex = 0;
+  final int _totalPages = 3;
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   void _finishOnboarding(BuildContext context) {
-    // 1. Simpan status onboarding ke SharedPreferences via Cubit
     context.read<OnboardingCubit>().completeOnboarding();
-
-    // 2. Solusi Error: Mengoper AuthBloc ke LoginPage agar tidak hilang jalurnya
     Navigator.pushReplacementNamed(context, '/login');
   }
 
   @override
   Widget build(BuildContext context) {
     final List<Widget> onboardingPages = [
-      _buildPage(
-        context,
-        backgroundColor: Colors.blue.shade50,
-        icon: Icons.water_drop,
-        iconColor: Colors.blue.shade700,
-        title: "Kemudahan Layanan PDAM",
+      OnboardingPageItem(
+        backgroundColor: const Color(0xFFFFFFFF),
+        title: "Pantau Penggunaan \n Air Lebih Mudah.",
         subtitle:
-            "Sekarang pantau penggunaan air dan bayar tagihan jadi lebih mudah langsung dari genggaman Anda.",
+            "Cek riwayat kubikasi pemakaian air Anda \n kapan saja secara real-time",
+        svgPath: 'assets/ilustrasi1.svg',
+        height: 409,
+        width: 327,
+        currentPageIndex: _currentSlideIndex,
+        totalPageCount: _totalPages,
       ),
-      _buildPage(
-        context,
-        backgroundColor: Colors.green.shade50,
-        icon: Icons.analytics_outlined,
-        iconColor: Colors.green.shade700,
-        title: "Catat Meter Mandiri",
+      OnboardingPageItem(
+        backgroundColor: Color(0xFFFFFFFF),
+        title: "Cek biaya tagihan dan \n bayar tepat waktu.",
         subtitle:
-            "Laporkan angka meteran air Anda secara mandiri setiap bulan dengan akurat tanpa perlu menunggu petugas.",
+            "Lakukan pembayaran tepat waktu untuk \n menikmati layanan tanpa hambatan.",
+        svgPath: 'assets/ilustrasi2.svg',
+        height: 409,
+        width: 506,
+        currentPageIndex: _currentSlideIndex,
+        totalPageCount: _totalPages,
       ),
-      _buildPage(
-        context,
-        backgroundColor: Colors.amber.shade50,
-        icon: Icons.notifications_active_outlined,
-        iconColor: Colors.amber.shade700,
-        title: "Notifikasi Real-time",
+      OnboardingPageItem(
+        backgroundColor: Color(0xFFFFFFFF),
+        title: "Solusi layanan PDAM \n dalam genggaman",
         subtitle:
-            "Dapatkan informasi instan mengenai gangguan layanan, info pemeliharaan, hingga pengingat jatuh tempo.",
-        secret_icon: Amicons.remix_question,
+            "Saatnya beralih ke layanan PDAM \n langsung dari ponsel Anda.",
+        secretIcon: 'assets/buttonscirt.svg',
+        svgPath: 'assets/ilustrasi3.svg',
+        height: 409,
+        width: 470,
+        currentPageIndex: _currentSlideIndex,
+        totalPageCount: _totalPages,
       ),
     ];
-
     return Scaffold(
-      body: Stack(
-        children: [
-          CarouselSlider(
-            items: onboardingPages,
-            carouselController: _carouselController,
-            options: CarouselOptions(
-              height: double.infinity,
-              viewportFraction: 1.0,
-              enableInfiniteScroll: false,
-              onPageChanged: (index, reason) {
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            PageView(
+              physics: const NeverScrollableScrollPhysics(),
+              controller: _pageController,
+              children: onboardingPages,
+              onPageChanged: (index) {
                 setState(() {
                   _currentSlideIndex = index;
                 });
               },
             ),
-          ),
-          Positioned(
-            bottom: 40,
-            left: 24,
-            right: 24,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _currentSlideIndex < onboardingPages.length - 1
-                    ? TextButton(
-                        onPressed: () => _finishOnboarding(context),
-                        child: const Text(
-                          "Lewati",
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+
+            Positioned(
+              bottom: 40,
+              left: 40,
+              right: 40,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(height: 24),
+                  GestureDetector(
+                    onTap: () {
+                      if (_currentSlideIndex < onboardingPages.length - 1) {
+                        _pageController.nextPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      } else {
+                        _finishOnboarding(context);
+                      }
+                    },
+                    child: Container(
+                      width: 327,
+                      height: 56,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Color(0xFF0F67FE),
+                        borderRadius: BorderRadius.circular(48),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.blue.shade700.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
                           ),
+                        ],
+                      ),
+                      child: Text(
+                        _currentSlideIndex == onboardingPages.length - 1
+                            ? "Mulai Sekarang"
+                            : "Lanjut",
+                        style: GoogleFonts.plusJakartaSans(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight(700),
                         ),
-                      )
-                    : const SizedBox(width: 60),
-                Row(
-                  children: onboardingPages.asMap().entries.map((entry) {
-                    bool isActive = _currentSlideIndex == entry.key;
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      width: isActive ? 24.0 : 8.0,
-                      height: 8.0,
-                      margin: const EdgeInsets.symmetric(horizontal: 4.0),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(4),
-                        color: isActive
-                            ? Colors.blue.shade700
-                            : Colors.grey.shade400,
-                      ),
-                    );
-                  }).toList(),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    if (_currentSlideIndex < onboardingPages.length - 1) {
-                      _carouselController.nextPage(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                      );
-                    } else {
-                      _finishOnboarding(context);
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue.shade700,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    _currentSlideIndex == onboardingPages.length - 1
-                        ? "Mulai"
-                        : "Lanjut",
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPage(
-    BuildContext context, {
-    required Color backgroundColor,
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    IconData? secret_icon,
-  }) {
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            if (secret_icon != null)
-              Positioned(
-                top: 15,
-                right: 24,
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AdminRegistrationPage(),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: iconColor.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Icon(
-                        secret_icon,
                       ),
                     ),
                   ),
-                ),
-              ),
-
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        // ignore: deprecated_member_use
-                        color: iconColor.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(icon, size: 100, color: iconColor),
-                    ),
-                    const SizedBox(height: 48),
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                  SizedBox(height: 16),
+                  Visibility(
+                    visible: _currentSlideIndex < onboardingPages.length - 1,
+                    maintainSize: true,
+                    maintainAnimation: true,
+                    maintainState: true,
+                    child: TextButton(
+                      onPressed: () => _finishOnboarding(context),
+                      child: Text(
+                        "Lewati",
+                        style: GoogleFonts.plusJakartaSans(
+                          color: const Color(0xFF242E49),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      subtitle,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.grey.shade700,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 60),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],

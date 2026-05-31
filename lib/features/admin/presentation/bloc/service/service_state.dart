@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:uklmobileapps/features/service/data/models/service_model.dart';
+import 'package:uklmobileapps/features/admin/data/service/models/service_model.dart';
 
 abstract class ServiceState extends Equatable {
   const ServiceState();

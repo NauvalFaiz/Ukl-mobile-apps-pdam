@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uklmobileapps/features/admin/presentation/bloc/customer/customer_bloc.dart';
-import 'package:uklmobileapps/features/admin/presentation/bloc/customer/customer_event.dart';
-import 'package:uklmobileapps/features/admin/presentation/bloc/customer/customer_state.dart';
+import 'package:uklmobileapps/features/customer/presentation/bloc/customer_bloc.dart';
+import 'package:uklmobileapps/features/customer/presentation/bloc/customer_event.dart';
+import 'package:uklmobileapps/features/customer/presentation/bloc/customer_state.dart';
 import 'package:uklmobileapps/features/admin/presentation/bloc/service/service_bloc.dart';
 import 'package:uklmobileapps/features/admin/presentation/bloc/service/service_event.dart';
 import 'package:uklmobileapps/features/admin/presentation/bloc/service/service_state.dart';
 import 'package:uklmobileapps/features/customer/data/models/customer_model.dart';
-import 'package:uklmobileapps/features/service/data/models/service_model.dart';
+import 'package:uklmobileapps/features/admin/data/service/models/service_model.dart';
 import 'package:uklmobileapps/shared/widgets/nav_model_custom.dart';
 
 class AdminCustomerPage extends StatefulWidget {

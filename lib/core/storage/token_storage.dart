@@ -38,7 +38,6 @@ class TokenStorage {
 
   // --- Clear on Logout ---
   Future<void> clearUserTokens() async {
-    // Kita hanya menghapus JWT dan Role, App-Key tetap dipertahankan
     await _prefs.remove(_keyJwtToken);
     await _prefs.remove(_keyRole);
   }

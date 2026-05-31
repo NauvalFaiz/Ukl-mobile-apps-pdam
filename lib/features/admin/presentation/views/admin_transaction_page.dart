@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uklmobileapps/features/admin/presentation/bloc/customer/customer_bloc.dart';
-import 'package:uklmobileapps/features/admin/presentation/bloc/customer/customer_event.dart';
-import 'package:uklmobileapps/features/admin/presentation/bloc/customer/customer_state.dart';
+import 'package:uklmobileapps/features/customer/presentation/bloc/customer_bloc.dart';
+import 'package:uklmobileapps/features/customer/presentation/bloc/customer_event.dart';
+import 'package:uklmobileapps/features/customer/presentation/bloc/customer_state.dart';
 import 'package:uklmobileapps/features/bill/presentation/bloc/bill_bloc.dart';
 import 'package:uklmobileapps/features/bill/presentation/bloc/bill_event.dart';
 import 'package:uklmobileapps/features/bill/presentation/bloc/bill_state.dart';

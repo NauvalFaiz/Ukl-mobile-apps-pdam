@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uklmobileapps/features/service/data/models/service_model.dart';
+import 'package:uklmobileapps/features/admin/data/service/models/service_model.dart';
 import 'package:uklmobileapps/features/admin/presentation/bloc/service/service_bloc.dart';
 import 'package:uklmobileapps/features/admin/presentation/bloc/service/service_event.dart';
 import 'package:uklmobileapps/features/admin/presentation/bloc/service/service_state.dart';

@@ -12,13 +12,14 @@ import 'package:uklmobileapps/core/network/api_client.dart';
 import 'package:uklmobileapps/core/storage/token_storage.dart';
 import 'package:uklmobileapps/features/auth/data/datasources/auth_service.dart';
 import 'package:uklmobileapps/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:uklmobileapps/features/onboarding/presentation/views/onboarding_screen.dart';
 import 'package:uklmobileapps/features/onboarding/presentation/views/splash_screen.dart';
 import 'package:uklmobileapps/features/admin/data/datasources/admin_service.dart';
 import 'package:uklmobileapps/features/admin/presentation/bloc/admin_profile_bloc.dart';
 import 'package:uklmobileapps/features/admin/data/datasources/service_api_service.dart';
 import 'package:uklmobileapps/features/admin/presentation/bloc/service/service_bloc.dart';
 import 'package:uklmobileapps/features/admin/data/datasources/customer_api_service.dart';
-import 'package:uklmobileapps/features/admin/presentation/bloc/customer/customer_bloc.dart';
+import 'package:uklmobileapps/features/customer/presentation/bloc/customer_bloc.dart';
 import 'package:uklmobileapps/features/admin/data/datasources/bill_api_service.dart';
 import 'package:uklmobileapps/features/bill/presentation/bloc/bill_bloc.dart';
 import 'package:uklmobileapps/features/admin/data/datasources/payment_api_service.dart';
@@ -117,7 +118,7 @@ class MyApp extends StatelessWidget {
         title: 'PDAM App Test',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(primarySwatch: Colors.blue),
-        home: const SplashScreen(),
+        home: const OnboardingScreen(),
         routes: {
           '/login': (context) => const LoginPage(),
           '/customer/dashboard': (context) => const CustomerDashboard(),

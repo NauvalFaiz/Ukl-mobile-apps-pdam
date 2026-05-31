@@ -48,7 +48,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
       final servicesRes = futures[2].data;
       final billsRes = futures[3].data;
 
-      // PERBAIKAN: Pastikan widget masih aktif di dalam tree sebelum mengubah state
       if (!mounted) return;
 
       setState(() {
@@ -61,7 +60,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     } catch (e) {
       debugPrint('Error fetch dashboard: $e');
       
-      // PERBAIKAN: Pastikan widget masih aktif di dalam tree saat menangkap error
       if (!mounted) return;
 
       setState(() {
@@ -104,7 +102,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: const Text('Admin Dashboard'),
-        // Kunci warna agar tidak berubah gelap/transparan saat di-scroll
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         scrolledUnderElevation: 0,
         actions: [
@@ -150,7 +147,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           pendingVerifications.toString(),
                           Icons.warning,
                           Colors.red,
-                          isAlert: true,
                         ),
                         _buildStatCard(
                           'Jenis Layanan',

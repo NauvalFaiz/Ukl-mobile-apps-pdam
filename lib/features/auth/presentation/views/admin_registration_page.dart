@@ -61,7 +61,7 @@ class _AdminRegistrationPageState extends State<AdminRegistrationPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Registrasi Admin Berhasil!')),
         );
-        Navigator.pushReplacementNamed(context, '/login'); // Lanjut ke login
+        Navigator.pushReplacementNamed(context, '/login'); 
       }
     } on DioException catch (e) {
       final serverMessage = e.response?.data?['message'] ?? e.message ?? 'Unknown error';

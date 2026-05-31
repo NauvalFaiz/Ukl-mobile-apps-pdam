@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:fl_chart/fl_chart.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:uklmobileapps/features/customer/presentation/bloc/customer_me_bloc.dart';
 import 'package:uklmobileapps/features/customer/presentation/bloc/customer_me_event.dart';
 import 'package:uklmobileapps/features/customer/presentation/bloc/customer_me_state.dart';
+import 'package:uklmobileapps/features/bill/data/models/bill_model.dart';
+import 'package:intl/intl.dart';
 import 'package:uklmobileapps/shared/widgets/customer_nav_custom.dart';
 
 class CustomerDashboard extends StatefulWidget {
@@ -32,7 +34,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true, // TETAP ADA: Sesuai keinginan agar navbar menembus body
+      extendBody: true, 
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: const Text('Dashboard'),
@@ -47,7 +49,6 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
             final bills = state.bills;
             final unpaidCount = bills.where((b) => !b.paid).length;
 
-            // Data Grafik: Urutkan tagihan berdasar tahun lalu bulan
             final sortedBills = List.of(bills)
               ..sort((a, b) {
                 if (a.year != b.year) return a.year.compareTo(b.year);
@@ -89,7 +90,6 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Tagihan Belum Dibayar
                     if (unpaidCount > 0)
                       Container(
                         width: double.infinity,
@@ -144,64 +144,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                     if (sortedBills.isEmpty)
                       const Center(child: Text('Belum ada data penggunaan'))
                     else
-                      SizedBox(
-                        height: 250,
-                        child: BarChart(
-                          BarChartData(
-                            barTouchData: BarTouchData(
-                              touchTooltipData: BarTouchTooltipData(
-                                getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                                  final b = sortedBills[groupIndex];
-                                  return BarTooltipItem(
-                                    '${b.usageValue} m³\nRp ${b.price}',
-                                    const TextStyle(color: Colors.white),
-                                  );
-                                },
-                              ),
-                            ),
-                            titlesData: FlTitlesData(
-                              bottomTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  getTitlesWidget: (value, meta) {
-                                    final index = value.toInt();
-                                    if (index >= 0 && index < sortedBills.length) {
-                                      final b = sortedBills[index];
-                                      return Padding(
-                                        padding: const EdgeInsets.only(top: 8.0),
-                                        child: Text(
-                                          '${_getMonthName(b.month)}\n${b.year}',
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(fontSize: 10),
-                                        ),
-                                      );
-                                    }
-                                    return const Text('');
-                                  },
-                                ),
-                              ),
-                              leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40)),
-                              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                            ),
-                            borderData: FlBorderData(show: false),
-                            barGroups: List.generate(
-                              sortedBills.length,
-                              (i) => BarChartGroupData(
-                                x: i,
-                                barRods: [
-                                  BarChartRodData(
-                                    toY: sortedBills[i].usageValue.toDouble(),
-                                    color: Colors.blue,
-                                    width: 16,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+                      WaterUsageChartPage(bills: sortedBills),
                     // SIZEDBOX PENAHAN TETAP ADA: Menghindari ketutupan navbar akibat extendBody
                     const SizedBox(height: 120),
                   ],
@@ -216,6 +159,136 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
         },
       ),
       bottomNavigationBar: const CustomerNavCustom(currentIndex: 0),
+    );
+  }
+}
+
+class WaterUsageData {
+  final String time;
+  final double volume;
+  final String price;
+
+  WaterUsageData(this.time, this.volume, this.price);
+}
+
+class WaterUsageChartPage extends StatefulWidget {
+  final List<BillModel> bills;
+  const WaterUsageChartPage({super.key, required this.bills});
+
+  @override
+  State<WaterUsageChartPage> createState() => _WaterUsageChartPageState();
+}
+
+class _WaterUsageChartPageState extends State<WaterUsageChartPage> {
+  late List<WaterUsageData> _chartData;
+  late TooltipBehavior _tooltipBehavior;
+
+  String _getMonthName(int month) {
+    const months = [
+      '', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+    ];
+    if (month >= 1 && month <= 12) return months[month];
+    return '';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _updateChartData();
+    
+    _tooltipBehavior = TooltipBehavior(
+      enable: true,
+      builder: (dynamic data, dynamic point, dynamic series, int pointIndex, int seriesIndex) {
+        final WaterUsageData usageData = data;
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.3),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Text(
+            usageData.price,
+            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant WaterUsageChartPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.bills != oldWidget.bills) {
+      _updateChartData();
+    }
+  }
+
+  void _updateChartData() {
+    _chartData = widget.bills.map((bill) {
+      String timeStr = '${_getMonthName(bill.month)} ${bill.year}';
+      try {
+        if (bill.createdAt.isNotEmpty) {
+           DateTime dt = DateTime.parse(bill.createdAt).toLocal();
+           timeStr = DateFormat('HH.mm').format(dt);
+        }
+      } catch (e) {
+        // ignore
+      }
+      
+      final formatCurrency = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp. ', decimalDigits: 0);
+      
+      return WaterUsageData(
+        timeStr, 
+        bill.usageValue.toDouble(), 
+        formatCurrency.format(bill.price)
+      );
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 300,
+      child: SfCartesianChart(
+        tooltipBehavior: _tooltipBehavior,
+        primaryXAxis: const CategoryAxis(
+          title: AxisTitle(text: 'Waktu'),
+        ),
+        primaryYAxis: const NumericAxis(
+          title: AxisTitle(text: 'Volume (m³)', textStyle: TextStyle(fontSize: 12)),
+          majorGridLines: MajorGridLines(dashArray: <double>[5, 5]),
+        ),
+        series: <CartesianSeries>[
+          StepAreaSeries<WaterUsageData, String>(
+            dataSource: _chartData,
+            xValueMapper: (WaterUsageData data, _) => data.time,
+            yValueMapper: (WaterUsageData data, _) => data.volume,
+            borderDrawMode: BorderDrawMode.top,
+            borderColor: Colors.blue,
+            borderWidth: 3,
+            gradient: LinearGradient(
+              colors: [Colors.blue.withOpacity(0.5), Colors.white.withOpacity(0.1)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+            markerSettings: const MarkerSettings(
+              isVisible: true,
+              shape: DataMarkerType.rectangle,
+              color: Colors.blue,
+              borderWidth: 2,
+              borderColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
