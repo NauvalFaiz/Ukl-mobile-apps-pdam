@@ -5,7 +5,7 @@ import 'package:uklmobileapps/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:uklmobileapps/features/auth/presentation/bloc/auth_event.dart';
 import 'package:uklmobileapps/features/auth/presentation/bloc/auth_state.dart';
 import 'package:uklmobileapps/features/customer/presentation/views/customer_dashboard.dart';
-import 'package:uklmobileapps/shared/widgets/custom-iput.dart';
+import 'package:uklmobileapps/shared/widgets/custom_input.dart';
 
 
 class LoginPage extends StatefulWidget {

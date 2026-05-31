@@ -1,39 +1,48 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uklmobileapps/core/network/api_client.dart';
-import 'package:uklmobileapps/features/payment/data/models/payment_model.dart';
-
-import 'payment_event.dart';
-import 'payment_state.dart';
+import 'package:uklmobileapps/features/admin/data/datasources/payment_api_service.dart';
+import 'package:uklmobileapps/features/payment/presentation/bloc/payment_event.dart';
+import 'package:uklmobileapps/features/payment/presentation/bloc/payment_state.dart';
 
 class PaymentBloc extends Bloc<PaymentEvent, PaymentState> {
-  final ApiClient apiClient;
+  final PaymentApiService apiService;
 
-  PaymentBloc({required this.apiClient}) : super(PaymentInitial()) {
-    on<FetchPayments>(_onFetchPayments);
-    on<FetchCustomerPayments>(_onFetchCustomerPayments);
+  PaymentBloc({required this.apiService}) : super(PaymentInitial()) {
+    on<FetchAllPayments>(_onFetchAllPayments);
+    on<VerifyPaymentEvent>(_onVerifyPayment);
+    on<DeletePaymentEvent>(_onDeletePayment);
   }
 
-  Future<void> _onFetchPayments(FetchPayments event, Emitter<PaymentState> emit) async {
+  Future<void> _onFetchAllPayments(FetchAllPayments event, Emitter<PaymentState> emit) async {
     emit(PaymentLoading());
     try {
-      final response = await apiClient.dio.get('/payments');
-      final data = response.data['data'] as List;
-      final payments = data.map((json) => PaymentModel.fromJson(json)).toList();
+      final payments = await apiService.getAllPayments();
       emit(PaymentLoaded(payments));
     } catch (e) {
-      emit(PaymentFailure(e.toString()));
+      emit(PaymentError(e.toString()));
     }
   }
 
-  Future<void> _onFetchCustomerPayments(FetchCustomerPayments event, Emitter<PaymentState> emit) async {
-    emit(PaymentLoading());
+  Future<void> _onVerifyPayment(VerifyPaymentEvent event, Emitter<PaymentState> emit) async {
+    emit(PaymentOperationLoading());
     try {
-      final response = await apiClient.dio.get('/payments/me');
-      final data = response.data['data'] as List;
-      final payments = data.map((json) => PaymentModel.fromJson(json)).toList();
-      emit(PaymentLoaded(payments));
+      await apiService.verifyPayment(event.id, true);
+      emit(const PaymentOperationSuccess('Pembayaran berhasil diverifikasi'));
+      add(FetchAllPayments());
     } catch (e) {
-      emit(PaymentFailure(e.toString()));
+      emit(PaymentError(e.toString()));
+      add(FetchAllPayments());
+    }
+  }
+
+  Future<void> _onDeletePayment(DeletePaymentEvent event, Emitter<PaymentState> emit) async {
+    emit(PaymentOperationLoading());
+    try {
+      await apiService.deletePayment(event.id);
+      emit(const PaymentOperationSuccess('Pembayaran berhasil dihapus'));
+      add(FetchAllPayments());
+    } catch (e) {
+      emit(PaymentError(e.toString()));
+      add(FetchAllPayments());
     }
   }
 }

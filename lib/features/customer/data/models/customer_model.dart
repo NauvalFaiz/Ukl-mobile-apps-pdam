@@ -1,34 +1,43 @@
 class CustomerModel {
   final int id;
-  final String username;
+  final int userId;
   final String customerNumber;
-  final String address;
-  final int serviceId;
   final String name;
   final String phone;
-  final String role;
+  final String address;
+  final int serviceId;
 
   CustomerModel({
     required this.id,
-    required this.username,
+    required this.userId,
     required this.customerNumber,
-    required this.address,
-    required this.serviceId,
     required this.name,
     required this.phone,
-    required this.role,
+    required this.address,
+    required this.serviceId,
   });
 
   factory CustomerModel.fromJson(Map<String, dynamic> json) {
     return CustomerModel(
       id: json['id'] ?? 0,
-      username: json['username'] ?? '',
+      userId: json['user_id'] ?? 0,
       customerNumber: json['customer_number'] ?? '',
-      address: json['address'] ?? '',
-      serviceId: json['service_id'] ?? 0,
       name: json['name'] ?? '',
       phone: json['phone'] ?? '',
-      role: json['role'] ?? 'CUSTOMER',
+      address: json['address'] ?? '',
+      serviceId: json['service_id'] ?? 0,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'customer_number': customerNumber,
+      'name': name,
+      'phone': phone,
+      'address': address,
+      'service_id': serviceId,
+    };
   }
 }

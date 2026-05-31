@@ -1,10 +1,7 @@
-// lib/core/network/api_constants.dart
-
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiConstants {
   static String get baseUrl {
-    // Cek apakah dotenv sudah siap, jika belum langsung pakai fallback URL
     if (!dotenv.isInitialized) {
       return 'https://learn.smktelkom-mlg.sch.id/pdam';
     }

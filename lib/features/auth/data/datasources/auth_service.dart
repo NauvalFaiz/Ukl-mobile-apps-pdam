@@ -3,7 +3,6 @@ import 'package:uklmobileapps/core/network/api_client.dart';
 import 'package:uklmobileapps/core/network/api_constants.dart';
 import '../models/user_model.dart';
 
-
 class AuthService {
   final ApiClient apiClient;
 
@@ -13,27 +12,25 @@ class AuthService {
     try {
       final response = await apiClient.dio.post(
         ApiConstants.ownerAuth,
-        data: {
-          'email': email,
-          'password': password,
-        },
+        data: {'email': email, 'password': password},
       );
-
-      // Cek apakah response success (200 atau 201)
-      if (response.statusCode != null && response.statusCode! >= 200 && response.statusCode! < 300) {
+      if (response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300) {
         final data = response.data;
-        
-        // Coba baca dari data['message']['owner_token']
-        if (data['message'] != null && data['message'] is Map && data['message']['owner_token'] != null) {
+
+        if (data['message'] != null &&
+            data['message'] is Map &&
+            data['message']['owner_token'] != null) {
           return data['message']['owner_token'];
         }
-        
-        // Coba baca dari data['data']['owner_token'] (format awal)
-        if (data['data'] != null && data['data'] is Map && data['data']['owner_token'] != null) {
+
+        if (data['data'] != null &&
+            data['data'] is Map &&
+            data['data']['owner_token'] != null) {
           return data['data']['owner_token'];
         }
-        
-        // Coba baca dari data['owner_token'] langsung
+
         if (data['owner_token'] != null) {
           return data['owner_token'];
         }
@@ -53,10 +50,7 @@ class AuthService {
     try {
       final response = await apiClient.dio.post(
         ApiConstants.userAuth,
-        data: {
-          'username': username,
-          'password': password,
-        },
+        data: {'username': username, 'password': password},
       );
 
       return UserModel.fromJson(response.data);

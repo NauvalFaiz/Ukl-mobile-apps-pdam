@@ -5,7 +5,7 @@ abstract class BillState extends Equatable {
   const BillState();
   
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
 class BillInitial extends BillState {}
@@ -14,16 +14,24 @@ class BillLoading extends BillState {}
 
 class BillLoaded extends BillState {
   final List<BillModel> bills;
-  const BillLoaded(this.bills);
-
+  final List<BillModel> allBills;
+  const BillLoaded(this.bills, this.allBills);
   @override
-  List<Object> get props => [bills];
+  List<Object?> get props => [bills, allBills];
 }
 
-class BillFailure extends BillState {
-  final String error;
-  const BillFailure(this.error);
+class BillOperationLoading extends BillState {}
 
+class BillOperationSuccess extends BillState {
+  final String message;
+  const BillOperationSuccess(this.message);
   @override
-  List<Object> get props => [error];
+  List<Object?> get props => [message];
+}
+
+class BillError extends BillState {
+  final String message;
+  const BillError(this.message);
+  @override
+  List<Object?> get props => [message];
 }

@@ -37,20 +37,24 @@ class AdminProfileBloc extends Bloc<AdminProfileEvent, AdminProfileState> {
   }
 
   Future<void> _onUpdateAdminProfile(UpdateAdminProfileEvent event, Emitter<AdminProfileState> emit) async {
-    AdminProfileLoaded? currentState;
-    if (state is AdminProfileLoaded) {
-      currentState = state as AdminProfileLoaded;
-      emit(AdminProfileUpdating(id: currentState.id, name: currentState.name, phone: currentState.phone));
+    // Simpan state loaded saat ini agar bisa dikembalikan jika error
+    final previousState = state is AdminProfileLoaded ? state as AdminProfileLoaded : null;
+
+    if (previousState != null) {
+      emit(AdminProfileUpdating(
+        id: previousState.id,
+        name: previousState.name,
+        phone: previousState.phone,
+      ));
     } else {
       emit(AdminProfileLoading());
     }
 
     try {
-      // Menyusun data payload secara dinamis sesuai kebutuhan API backend PDAM
       final Map<String, dynamic> payload = {
         'name': event.name,
         'phone': event.phone,
-        'username': event.username, // Mengirimkan username baru ke backend
+        'username': event.username,
       };
 
       if (event.password != null && event.password!.isNotEmpty) {
@@ -60,13 +64,25 @@ class AdminProfileBloc extends Bloc<AdminProfileEvent, AdminProfileState> {
       debugPrint('Update payload: $payload');
       await adminService.updateAdminProfile(event.id, payload);
       emit(const AdminProfileUpdateSuccess('Profil berhasil diperbarui'));
-      
-      // Ambil data profil terbaru dari server setelah berhasil update
+
+      // Fetch data terbaru dari server
       add(FetchAdminProfileEvent());
     } catch (e) {
       debugPrint('UpdateAdminProfile error: $e');
-      emit(AdminProfileError('$e'));
-      add(FetchAdminProfileEvent());
+
+      // Kembalikan ke state loaded sebelumnya agar tombol edit tidak terkunci
+      if (previousState != null) {
+        emit(previousState);
+      }
+
+      // Tampilkan pesan error yang bersih (hilangkan prefix "Exception: ")
+      final rawMsg = e.toString().replaceFirst('Exception: ', '');
+      emit(AdminProfileError(rawMsg));
+
+      // Jika state sebelumnya tidak ada, fetch ulang dari server
+      if (previousState == null) {
+        add(FetchAdminProfileEvent());
+      }
     }
   }
 
