@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uklmobileapps/core/network/api_constants.dart';
 import 'package:uklmobileapps/core/utils/admin_validators.dart';
+import 'package:uklmobileapps/features/auth/presentation/views/components/custom_input.dart';
 
 class AdminRegistrationPage extends StatefulWidget {
   const AdminRegistrationPage({super.key});
@@ -20,13 +21,6 @@ class _AdminRegistrationPageState extends State<AdminRegistrationPage> {
   final _phoneController = TextEditingController();
 
   bool _isLoading = false;
-  bool _obscurePassword = true;
-
-  // State untuk mendeteksi error pada masing-masing field secara real-time
-  bool _nameHasError = false;
-  bool _phoneHasError = false;
-  bool _usernameHasError = false;
-  bool _passwordHasError = false;
 
   @override
   void dispose() {
@@ -38,7 +32,6 @@ class _AdminRegistrationPageState extends State<AdminRegistrationPage> {
   }
 
   Future<void> _registerAdmin() async {
-    // Validasi form saat tombol ditekan
     final isValid = _formKey.currentState!.validate();
     if (!isValid) return;
 
@@ -102,52 +95,65 @@ class _AdminRegistrationPageState extends State<AdminRegistrationPage> {
 
     return Scaffold(
       backgroundColor: Colors.white,
+      // 1. SingleChildScrollView ditaruh di paling luar agar SEMUA komponen bisa di-scroll
       body: SingleChildScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ================= HEADER SECTION =================
-            SizedBox(
-              height: 320, // Menggunakan ukuran proposional sesuai gambar UI
+            // ================= 1. HEADER SECTION (IKUT DI-SCROLL) =================
+            Container(
+              decoration: const BoxDecoration(
+                color: Color(0xff0F67FE),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(35),
+                  bottomRight: Radius.circular(35),
+                ),
+              ),
+              height: 360, 
               width: screenWidth,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: SvgPicture.asset(
-                      'assets/card_register-login.svg',
-                      fit: BoxFit.fill,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(35),
+                  bottomRight: Radius.circular(35),
+                ),
+                child: Stack(
+                  clipBehavior: Clip.hardEdge,
+                  children: [
+                    // Background SVG memenuhi area atas
+                    Positioned.fill(
+                      child: SvgPicture.asset(
+                        'assets/card_register-login.svg',
+                        fit: BoxFit.cover,
+                      ),
                     ),
-                  ),
-                  Positioned(
-                    top: 50,
-                    right: 20,
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: SvgPicture.asset('assets/Close.svg'),
+                    // Tombol Close/Kembali
+                    Positioned(
+                      top: 60, // Jarak aman dari status bar HP
+                      right: 20,
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: SvgPicture.asset('assets/Close.svg'),
+                      ),
                     ),
-                  ),
-                  Positioned(
-                    left: 24,
-                    bottom: 50,
-                    right: 24,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SvgPicture.asset(
-                          'assets/register.svg',
-                          height: 142,
-                          width: 326,
-                        ),
-                      ],
+                    // Judul/Grafis Register
+                    Positioned(
+                      left: 24,
+                      bottom: 40,
+                      right: 24,
+                      child: SvgPicture.asset(
+                        'assets/register.svg',
+                        alignment: Alignment.bottomLeft,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 
-            // ================= FORM SECTION =================
+            // ================= 2. FORM SECTION (IKUT DI-SCROLL) =================
             Padding(
-              padding: const EdgeInsets.only(top: 24, left: 24, right: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -155,64 +161,32 @@ class _AdminRegistrationPageState extends State<AdminRegistrationPage> {
                   children: [
                     // --- NAMA LENGKAP ---
                     _buildInputLabel('Nama Lengkap'),
-                    TextFormField(
+                    CustomInput(
                       controller: _nameController,
-                      decoration: _buildInputDecoration(
-                        'Enter your email address...',
-                        hasError: _nameHasError,
-                      ),
-                      // Listener pembaruan warna saat terjadi validasi
-                      onChanged: (val) {
-                        if (_nameHasError)
-                          setState(() => _nameHasError = false);
-                      },
-                      validator: (value) {
-                        final res = AdminValidators.validateName(value);
-                        setState(() => _nameHasError = res != null);
-                        return res;
-                      },
+                      hintText: 'Enter your name...',
+                      validator: AdminValidators.validateName,
                     ),
                     const SizedBox(height: 20),
 
                     // --- NOMOR TELEPON ---
                     _buildInputLabel('Nomor Telepon'),
-                    TextFormField(
+                    CustomInput(
                       controller: _phoneController,
+                      hintText: 'Enter your phone number...',
                       keyboardType: TextInputType.phone,
-                      decoration: _buildInputDecoration(
-                        'Enter your email address...',
-                        hasError: _phoneHasError,
-                      ),
-                      onChanged: (val) {
-                        if (_phoneHasError)
-                          setState(() => _phoneHasError = false);
-                      },
-                      validator: (value) {
-                        final res = AdminValidators.validatePhone(value);
-                        setState(() => _phoneHasError = res != null);
-                        return res;
-                      },
+                      validator: AdminValidators.validatePhone,
                     ),
                     const SizedBox(height: 20),
 
                     // --- USERNAME ---
                     _buildInputLabel('Username'),
-                    TextFormField(
+                    CustomInput(
                       controller: _usernameController,
-                      decoration: _buildInputDecoration(
-                        'Enter your email address...',
-                        hasError: _usernameHasError,
-                      ),
-                      onChanged: (val) {
-                        if (_usernameHasError)
-                          setState(() => _usernameHasError = false);
-                      },
+                      hintText: 'Enter your username...',
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          setState(() => _usernameHasError = true);
                           return 'Username tidak boleh kosong';
                         }
-                        setState(() => _usernameHasError = false);
                         return null;
                       },
                     ),
@@ -220,46 +194,17 @@ class _AdminRegistrationPageState extends State<AdminRegistrationPage> {
 
                     // --- PASSWORD ---
                     _buildInputLabel('Password'),
-                    TextFormField(
+                    CustomInput(
                       controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      decoration:
-                          _buildInputDecoration(
-                            '*****************',
-                            hasError: _passwordHasError,
-                          ).copyWith(
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off_rounded
-                                    : Icons
-                                          .visibility_rounded, // Diperbaiki agar berganti icon mata terbuka/tertutup
-                                color: _passwordHasError
-                                    ? const Color(0xffFA4D5E)
-                                    : Colors.grey,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                            ),
-                          ),
-                      onChanged: (val) {
-                        if (_passwordHasError)
-                          setState(() => _passwordHasError = false);
-                      },
+                      hintText: '*****************',
+                      isPassword: true,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          setState(() => _passwordHasError = true);
                           return 'Password tidak boleh kosong';
                         }
                         if (value.length < 8) {
-                          // Mengikuti gambar "minimal mengandung 8 karakter"
-                          setState(() => _passwordHasError = true);
                           return 'Password minimal mengandung 8 karakter.';
                         }
-                        setState(() => _passwordHasError = false);
                         return null;
                       },
                     ),
@@ -294,7 +239,9 @@ class _AdminRegistrationPageState extends State<AdminRegistrationPage> {
                               ),
                             ),
                     ),
-                    const SizedBox(height: 50),
+                    const SizedBox(
+                      height: 24,
+                    ), // Jarak manis di bagian paling bawah halaman
                   ],
                 ),
               ),
@@ -315,54 +262,6 @@ class _AdminRegistrationPageState extends State<AdminRegistrationPage> {
           fontWeight: FontWeight.w600,
           color: Color(0xFF1E293B),
         ),
-      ),
-    );
-  }
-
-  InputDecoration _buildInputDecoration(String hint, {bool hasError = false}) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: TextStyle(
-        color: hasError ? const Color(0xffFA4D5E) : const Color(0xFF5D6A85),
-        fontSize: 14,
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      filled: true,
-      // ==============================================================
-      // PERBAIKAN LOGIKA WARNA BACKGROUND DI SINI (SESUAI GAMBAR BARU)
-      // ==============================================================
-      // JIKA ERROR -> Pakai warna soft pink (0xFFFFD7DD)
-      // JIKA NORMAL -> Pakai warna abu-abu (0xFFF5F5F5)
-      fillColor: hasError ? const Color(0xFFFFD7DD) : const Color(0xFFF5F5F5),
-
-      errorStyle: const TextStyle(
-        color: Color(0xffFA4D5E),
-        fontSize: 12,
-        fontWeight: FontWeight.w500,
-      ),
-
-      // Border Normal (Tanpa garis tepi hitam)
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(50),
-        borderSide: BorderSide.none,
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(50),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(50),
-        borderSide: const BorderSide(color: Color(0xFF1A6CFF), width: 1.5),
-      ),
-
-      // Border Khusus Saat State Error Berjalan
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(50),
-        borderSide: const BorderSide(color: Color(0xffFA4D5E), width: 1),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(50),
-        borderSide: const BorderSide(color: Color(0xffFA4D5E), width: 1.5),
       ),
     );
   }
