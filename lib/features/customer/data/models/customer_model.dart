@@ -6,6 +6,7 @@ class CustomerModel {
   final String phone;
   final String address;
   final int serviceId;
+  final String? username;
 
   CustomerModel({
     required this.id,
@@ -15,6 +16,7 @@ class CustomerModel {
     required this.phone,
     required this.address,
     required this.serviceId,
+    this.username,
   });
 
   factory CustomerModel.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,7 @@ class CustomerModel {
       phone: json['phone'] ?? '',
       address: json['address'] ?? '',
       serviceId: json['service_id'] ?? 0,
+      username: json['user'] != null ? json['user']['username'] : null,
     );
   }
 

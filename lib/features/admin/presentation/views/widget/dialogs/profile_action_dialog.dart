@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:uklmobileapps/features/admin/presentation/bloc/admin_profile_bloc.dart';
 import 'package:uklmobileapps/features/admin/presentation/bloc/admin_profile_event.dart';
 
@@ -13,95 +14,215 @@ class ProfileActionDialog {
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setStateDialog) => AlertDialog(
+        builder: (context, setStateDialog) => Dialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(28),
           ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.warning_rounded, color: Colors.red, size: 64),
-                const SizedBox(height: 16),
-                const Text(
-                  'Anda yakin menghapus akun anda?',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Jika yakin, ketik "delate" pada kolom di bawah ini untuk menghapus akun secara permanen.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: deleteController,
-                  decoration: InputDecoration(
-                    hintText: 'Ketik "delate" di sini',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+          backgroundColor: Colors.white,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 24,
+          ),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Stack(
+                    alignment: Alignment.topCenter,
+                    children: [
+                      // ICON PERINGATAN (Pink Soft Background)
+                      Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFE4E6),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Icon(
+                          Icons.warning_amber_rounded,
+                          color: Color(0xFFFF4D5A),
+                          size: 44,
+                        ),
+                      ),
+                      // HEADER: TOMBOL CLOSE (X) SEJAJAR KANAN
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: GestureDetector(
+                          onTap: () => Navigator.pop(dialogContext),
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFF4D5A),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // JUDUL UTAMA
+                  Text(
+                    'Hapus Akun Secara\nPermanen?',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1E293B),
+                      height: 1.2,
                     ),
                   ),
-                  onChanged: (value) {
-                    setStateDialog(() {
-                      isDeleteEnabled = value == 'delate';
-                    });
-                  },
-                ),
-              ],
+                  const SizedBox(height: 16),
+
+                  // TEKS DESKRIPSI & PETUNJUK
+                  Text(
+                    'Tindakan ini akan menghapus seluruh data instansi Anda secara permanen. Jika ingin mendaftar kembali di kemudian hari, ikuti langkah berikut:',
+                    textAlign: TextAlign.left,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      color: const Color(0xFF64748B),
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // DAFTAR PERATURAN BERPOIN
+                  _buildStepRow(
+                    '1.',
+                    'Buka halaman Kebijakan Privasi (Privacy Policy).',
+                  ),
+                  const SizedBox(height: 6),
+                  _buildStepRow(
+                    '2.',
+                    'Klik tautan pendaftaran kembali, lalu verifikasi menggunakan Kode Instansi resmi.',
+                  ),
+                  const SizedBox(height: 6),
+                  _buildStepRow(
+                    '3.',
+                    'Masuk ke halaman registrasi untuk membuat akun baru dan silakan login kembali.',
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // TEXT FIELD UNTUK VALIDASI KATA "Delete"
+                  TextField(
+                    controller: deleteController,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1E293B),
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Delete',
+                      hintStyle: GoogleFonts.plusJakartaSans(
+                        color: const Color(0xFF94A3B8),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFE2E8F0),
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 16,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    onChanged: (value) {
+                      setStateDialog(() {
+                        isDeleteEnabled = value == 'Delete';
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  Text(
+                    'Ketik "Delete" untuk melanjutkan\nprotokol penghapusan akun',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF475569),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // TOMBOL HAPUS PERMANEN
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: isDeleteEnabled
+                          ? () {
+                              Navigator.pop(dialogContext);
+                              bloc.add(
+                                DeleteAdminProfileEvent(id: adminId),
+                              );
+                            }
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFF4D5A),
+                        disabledBackgroundColor: const Color(0xFFCBD5E1),
+                        foregroundColor: Colors.white,
+                        disabledForegroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      child: Text(
+                        'Hapus Permanen',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          actions: [
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(dialogContext),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text(
-                      'Batal',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: isDeleteEnabled
-                        ? () {
-                            Navigator.pop(dialogContext);
-                            bloc.add(DeleteAdminProfileEvent(id: adminId));
-                          }
-                        : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text(
-                      'Delate',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
         ),
       ),
+    );
+  }
+
+  static Widget _buildStepRow(String number, String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 20,
+          child: Text(
+            number,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            text,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              color: const Color(0xFF64748B),
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -112,12 +233,22 @@ class ProfileActionDialog {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Konfirmasi Logout'),
-        content: const Text('Apakah Anda yakin ingin keluar aplikasi?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Konfirmasi Logout',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Apakah Anda yakin ingin keluar aplikasi?',
+          style: GoogleFonts.plusJakartaSans(),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Batal'),
+            child: Text(
+              'Batal',
+              style: GoogleFonts.plusJakartaSans(color: Colors.grey),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -125,10 +256,17 @@ class ProfileActionDialog {
               onConfirm();
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: const Color(0xFFFF4D5A),
               foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
             ),
-            child: const Text('Ya, Keluar'),
+            child: Text(
+              'Ya, Keluar',
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),

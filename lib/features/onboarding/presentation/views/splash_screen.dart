@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uklmobileapps/features/admin/presentation/views/admin_dashboard.dart';
 import 'package:uklmobileapps/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:uklmobileapps/features/auth/presentation/bloc/auth_event.dart';
@@ -78,13 +79,45 @@ class _SplashScreenState extends State<SplashScreen> {
             }
           }
         },
-        child: const Center(
+        child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('PDAM', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              SizedBox(height: 16),
-              CircularProgressIndicator(),
+              SvgPicture.asset(
+                'assets/Intersect.svg',
+                width: 100,
+              ),
+              const SizedBox(height: 40),
+              SizedBox(
+                width: 150,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: const LinearProgressIndicator(
+                    minHeight: 4,
+                    backgroundColor: Color(0xFFE2E8F0),
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0066FF)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'PDAM Mobile',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Solusi Praktis Kelola Layanan Air\nBersih dalam Genggaman.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF64748B),
+                  height: 1.5,
+                ),
+              ),
             ],
           ),
         ),

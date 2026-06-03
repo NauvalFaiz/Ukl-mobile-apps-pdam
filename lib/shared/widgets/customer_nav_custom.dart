@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uklmobileapps/features/customer/presentation/views/customer_dashboard.dart';
 import 'package:uklmobileapps/features/customer/presentation/views/customer_bill_page.dart';
 import 'package:uklmobileapps/features/customer/presentation/views/customer_profile_page.dart';
@@ -9,40 +10,60 @@ class CustomerNavCustom extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).padding.bottom;
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        bottom: bottomInset > 0 ? bottomInset : 16,
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.12,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Color(0xffF5F5F5)),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(30),
+          topRight: Radius.circular(30),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0xff000000).withOpacity(0.15),
+            offset: const Offset(0, 0),
+            blurRadius: 3.3,
+          ),
+        ],
       ),
-      child: Container(
-        height: MediaQuery.of(context).size.height * 0.087,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.5),
-              offset: const Offset(0, 10),
-              blurRadius: 10,
-            )
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildNavItem(context, 0, Icons.dashboard, 'DASHBOARD'),
-            _buildNavItem(context, 1, Icons.receipt_long, 'TAGIHAN'),
-            _buildNavItem(context, 2, Icons.person, 'PROFIL'),
-          ],
-        ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildNavItem(
+            context,
+            0,
+            "assets/home.svg",
+            "assets/home_fill.svg",
+            'DASHBOARD',
+          ),
+          _buildNavItem(
+            context,
+            1,
+            "assets/trans.svg",
+            "assets/trans_fill.svg",
+            'TAGIHAN',
+          ),
+          _buildNavItem(
+            context,
+            2,
+            "assets/Profile.svg",
+            "assets/Profile_fill.svg",
+            'PROFIL',
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildNavItem(BuildContext context, int index, IconData icon, String label) {
+  Widget _buildNavItem(
+    BuildContext context,
+    int index,
+    String icon,
+    String icon_fill,
+    String label,
+  ) {
     final isSelected = currentIndex == index;
     return GestureDetector(
       onTap: () {
@@ -75,18 +96,18 @@ class CustomerNavCustom extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            icon,
-            color: isSelected ? Colors.blue : Colors.white70,
-            size: 24,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: isSelected ? Colors.blue : Colors.white70,
-              fontSize: 8,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          Container(
+            height: 43,
+            width: 43,
+            alignment: AlignmentDirectional.center,
+            decoration: BoxDecoration(
+              color: isSelected ? Color(0xffD0E4FF) : Colors.transparent,
+              borderRadius: BorderRadius.circular(10.49),
+            ),
+            child: SvgPicture.asset(
+              isSelected ? icon_fill : icon,
+              height: 25.17,
+              width: 25.17,
             ),
           ),
         ],

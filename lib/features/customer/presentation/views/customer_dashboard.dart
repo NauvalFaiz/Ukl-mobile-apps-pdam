@@ -55,6 +55,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
 
     return Scaffold(
       extendBody: true,
+      backgroundColor: Colors.white,
       body: BlocBuilder<CustomerMeBloc, CustomerMeState>(
         builder: (context, state) {
           if (state is CustomerMeLoading) {
@@ -64,7 +65,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
             final profile = state.profile;
             final bills = state.bills;
 
-            // Menyaring hanya tagihan yang BELUM lunas
+            // Filter hanya tagihan yang BELUM lunas
             final unpaidBills = bills.where((b) => !b.paid).toList();
             final unpaidCount = unpaidBills.length;
 

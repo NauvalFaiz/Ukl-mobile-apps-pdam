@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uklmobileapps/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:uklmobileapps/features/auth/presentation/bloc/auth_event.dart';
-import 'package:uklmobileapps/features/auth/presentation/views/login_page.dart';
-import 'package:uklmobileapps/shared/widgets/nav_model_custom.dart';
+
 import 'package:uklmobileapps/core/network/api_client.dart';
 import 'package:uklmobileapps/core/storage/token_storage.dart';
+import 'package:uklmobileapps/features/admin/presentation/bloc/admin_profile_bloc.dart';
+import 'package:uklmobileapps/features/admin/presentation/bloc/admin_profile_event.dart';
+import 'package:uklmobileapps/features/admin/presentation/bloc/admin_profile_state.dart';
+import 'package:uklmobileapps/shared/widgets/nav_model_custom.dart';
+import 'package:uklmobileapps/shared/widgets/time.dart';
+import 'package:uklmobileapps/features/customer/presentation/widgets/ts.dart';
+import 'package:uklmobileapps/features/admin/presentation/views/admin_transaction_page.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -21,19 +26,49 @@ class _AdminDashboardState extends State<AdminDashboard> {
   int pendingVerifications = 0;
   int totalServices = 0;
   int totalBills = 0;
+
+  String adminName = 'Admin';
+  String adminEmail = '';
+
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    context.read<AdminProfileBloc>().add(FetchAdminProfileEvent());
     _fetchDashboardData();
+    _fetchAdminProfile();
+  }
+
+  Future<void> _fetchAdminProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final tokenStorage = TokenStorage(prefs);
+
+      final apiClient = ApiClient(dio: Dio(), tokenStorage: tokenStorage);
+
+      final response = await apiClient.dio.get('/me');
+
+      if (!mounted) return;
+
+      final data = response.data['data'];
+
+      setState(() {
+        adminName = data['name'] ?? 'Admin';
+        adminEmail = data['email'] ?? '';
+      });
+    } catch (e) {
+      debugPrint('Error fetch profile: $e');
+    }
   }
 
   Future<void> _fetchDashboardData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final tokenStorage = TokenStorage(prefs);
+
       final apiClient = ApiClient(dio: Dio(), tokenStorage: tokenStorage);
+
       final dio = apiClient.dio;
 
       final futures = await Future.wait([
@@ -59,7 +94,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       });
     } catch (e) {
       debugPrint('Error fetch dashboard: $e');
-      
+
       if (!mounted) return;
 
       setState(() {
@@ -69,14 +104,26 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   int _parseCount(dynamic res) {
-    if (res is Map<String, dynamic> && res.containsKey('count')) {
-      return (res['count'] as num).toInt();
+    if (res is Map<String, dynamic>) {
+      if (res['count'] != null) {
+        return (res['count'] as num).toInt();
+      }
+
+      if (res['data'] is List) {
+        return (res['data'] as List).length;
+      }
     }
+
+    if (res is List) {
+      return res.length;
+    }
+
     return 0;
   }
 
   int _parsePending(dynamic res) {
     List<dynamic> list = [];
+
     if (res is List) {
       list = res;
     } else if (res is Map<String, dynamic> && res['data'] is List) {
@@ -84,84 +131,157 @@ class _AdminDashboardState extends State<AdminDashboard> {
     }
 
     int pending = 0;
+
     for (var item in list) {
-      if (item is Map<String, dynamic> &&
-          item['status'] is Map<String, dynamic>) {
-        if (item['status']['verified'] == false) {
+      if (item is Map<String, dynamic>) {
+        if (item['verified'] == false || item['verified'] == 0 || item['verified'] == '0') {
           pending++;
         }
       }
     }
+
     return pending;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       bottomNavigationBar: const NavModelCustom(currentIndex: 0),
+
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Admin Dashboard'),
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        scrolledUnderElevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              context.read<AuthBloc>().add(AuthLogoutRequested());
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const LoginPage()),
-                (route) => false,
+        backgroundColor: Colors.transparent,
+        scrolledUnderElevation: 0.0,
+
+        title: BlocBuilder<AdminProfileBloc, AdminProfileState>(
+          builder: (context, state) {
+            if (state is AdminProfileLoaded) {
+              return Row(
+                children: [
+                  SvgPicture.asset('assets/admin.svg', width: 40, height: 40),
+
+                  const SizedBox(width: 12),
+
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GreetingWidget(userName: state.name),
+
+                      Text(
+                        state.role,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xff818BA0),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               );
-            },
+            }
+
+            return Row(
+              children: [
+                SvgPicture.asset('assets/admin.svg', width: 40, height: 40),
+                const SizedBox(width: 12),
+                const Text('Memuat...'),
+              ],
+            );
+          },
+        ),
+
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Center(
+              child: Text(
+                AppDate.format(DateTime.now()),
+                style: const TextStyle(
+                  color: Color(0xff818BA0),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
           ),
         ],
       ),
+
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Ringkasan Operasional',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: GridView.count(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 1.2,
-                      children: [
-                        _buildStatCard(
-                          'Total Customer',
-                          totalCustomers.toString(),
-                          Icons.people,
-                          Colors.blue,
-                        ),
-                        _buildStatCard(
-                          'Butuh Verifikasi',
-                          pendingVerifications.toString(),
-                          Icons.warning,
-                          Colors.red,
-                        ),
-                        _buildStatCard(
-                          'Jenis Layanan',
-                          totalServices.toString(),
-                          Icons.settings,
-                          Colors.green,
-                        ),
-                        _buildStatCard(
-                          'Total Tagihan',
-                          totalBills.toString(),
-                          Icons.receipt,
-                          Colors.orange,
-                        ),
-                      ],
+                    'Data dan Aktivitas',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF242E49),
                     ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  _buildLargeCard(
+                    title: 'Total Customer',
+                    value: totalCustomers.toString(),
+                    icon: 'assets/customor_fill.svg',
+                    color: const Color(0xFF2166F3),
+                    bgColor: const Color(0xFFF7FAFF),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  _buildLargeCard(
+                    title: 'Butuh Verifikasi',
+                    value: pendingVerifications.toString(),
+                    icon: 'assets/icon.svg',
+                    color: const Color(0xFFF84B5E),
+                    bgColor: const Color(0xFFFFF7F8),
+                    onTap: () {
+                      Navigator.pushReplacement(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder: (_, __, ___) =>
+                              const AdminTransactionPage(initialTabIndex: 1),
+                          transitionDuration: Duration.zero,
+                          reverseTransitionDuration: Duration.zero,
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildSmallCard(
+                          title: 'Total Tagihan',
+                          value: totalBills.toString(),
+                          icon: 'assets/trans_fill.svg',
+                          color: const Color(0xFFF6CD00),
+                          bgColor: const Color(0xFFFFFDF4),
+                        ),
+                      ),
+
+                      const SizedBox(width: 16),
+
+                      Expanded(
+                        child: _buildSmallCard(
+                          title: 'Jenis Layanan',
+                          value: totalServices.toString(),
+                          icon: 'assets/service_fill.svg',
+                          color: const Color(0xFF2166F3),
+                          bgColor: const Color(0xFFF7FAFF),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -169,42 +289,162 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  Widget _buildStatCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color, {
-    bool isAlert = false,
+  Widget _buildLargeCard({
+    required String title,
+    required String value,
+    required String icon,
+    required Color color,
+    required Color bgColor,
+    VoidCallback? onTap,
   }) {
-    return Card(
-      color: isAlert ? Colors.red : Colors.white,
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 32, color: isAlert ? Colors.white : color),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: isAlert ? Colors.white : Colors.black,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(.15)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF5C6B8A),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 58,
+                height: 58,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(.15),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: SvgPicture.asset(icon, height: 21.17, width: 21.17),
+              ),
+              const SizedBox(width: 16),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 42,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF242E49),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
+          SizedBox(
+            width: 145,
+            height: 44,
+            child: ElevatedButton(
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: color,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+              ),
+              child: const Text(
+                'Lihat',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: isAlert ? Colors.white : Colors.black54,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSmallCard({
+    required String title,
+    required String value,
+    required String icon,
+    required Color color,
+    required Color bgColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 22),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(.15)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF5C6B8A),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(.15),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: SvgPicture.asset(
+                  icon,
+                  color: color,
+                  height: 21.17,
+                  width: 21.17,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF242E49),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: 120,
+            height: 40,
+            child: ElevatedButton(
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: color,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+              ),
+              child: const Text(
+                'Lihat',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

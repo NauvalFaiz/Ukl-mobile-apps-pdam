@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:uklmobileapps/features/admin/presentation/widgets/transaction/admin_transaction_utils.dart';
 import 'package:uklmobileapps/features/customer/presentation/bloc/customer_bloc.dart';
 import 'package:uklmobileapps/features/customer/presentation/bloc/customer_event.dart';
 import 'package:uklmobileapps/features/customer/presentation/bloc/customer_state.dart';
@@ -17,9 +18,15 @@ import 'package:uklmobileapps/features/admin/data/service/models/service_model.d
 import 'package:uklmobileapps/shared/widgets/nav_model_custom.dart';
 import 'package:uklmobileapps/shared/widgets/full_screen_image_page.dart';
 import 'package:uklmobileapps/core/network/api_constants.dart';
+import 'package:uklmobileapps/features/customer/presentation/widgets/CustomTabBar.dart';
+import 'package:flutter_dotted/flutter_dotted.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:uklmobileapps/features/admin/presentation/widgets/transaction/admin_bills_tab.dart';
+import 'package:uklmobileapps/features/admin/presentation/widgets/transaction/admin_payments_tab.dart';
 
 class AdminTransactionPage extends StatefulWidget {
-  const AdminTransactionPage({super.key});
+  final int initialTabIndex;
+  const AdminTransactionPage({super.key, this.initialTabIndex = 0});
 
   @override
   State<AdminTransactionPage> createState() => _AdminTransactionPageState();
@@ -38,26 +45,40 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
     decimalDigits: 0,
   );
 
+  String _getNamaBulan(int monthNumber) {
+    const daftarBulan = [
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
+    ];
+    if (monthNumber >= 1 && monthNumber <= 12) {
+      return daftarBulan[monthNumber - 1];
+    }
+    return monthNumber.toString();
+  }
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTabIndex,
+    );
+    _tabController.addListener(() {
+      setState(() {});
+    });
     context.read<BillBloc>().add(FetchAllBills());
     context.read<PaymentBloc>().add(FetchAllPayments());
-
-    _billScrollController.addListener(() {
-      if (_billScrollController.position.pixels >=
-          _billScrollController.position.maxScrollExtent - 200) {
-        context.read<BillBloc>().add(FetchMoreBills());
-      }
-    });
-
-    _paymentScrollController.addListener(() {
-      if (_paymentScrollController.position.pixels >=
-          _paymentScrollController.position.maxScrollExtent - 200) {
-        context.read<PaymentBloc>().add(FetchMorePayments());
-      }
-    });
   }
 
   @override
@@ -70,11 +91,14 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
   }
 
   // ────────────────────────────────────────────────────────────
-  // FORM TAMBAH / EDIT TAGIHAN dengan kalkulasi harga otomatis
+  // FORM TAMBAH / EDIT TAGIHAN
   // ────────────────────────────────────────────────────────────
   void _showBillForm([BillModel? bill]) {
     final isEditing = bill != null;
     int? selectedCustomerId = isEditing ? bill.customerId : null;
+
+    // PERBAIKAN LOGIKA: Simpan ID Layanan jika sedang dalam mode edit
+    int? selectedServiceId = isEditing ? bill.serviceId : null;
     ServiceModel? selectedService;
 
     final monthController = TextEditingController(
@@ -94,13 +118,7 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
     );
     final formKey = GlobalKey<FormState>();
 
-    void _updatePrice() {
-      final usageVal = int.tryParse(usageController.text) ?? 0;
-      if (selectedService != null && usageVal > 0) {
-        priceController.text = (selectedService!.price * usageVal).toString();
-      }
-    }
-
+    // Trigger pengambilan data customer sebelum modal muncul
     context.read<CustomerBloc>().add(FetchAllCustomers());
 
     showDialog(
@@ -108,6 +126,14 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
+            void updatePrice() {
+              final usageVal = int.tryParse(usageController.text) ?? 0;
+              if (selectedService != null && usageVal > 0) {
+                priceController.text = (selectedService!.price * usageVal)
+                    .toString();
+              }
+            }
+
             return AlertDialog(
               title: Text(isEditing ? 'Edit Tagihan' : 'Tambah Tagihan'),
               content: SingleChildScrollView(
@@ -128,7 +154,11 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
                           if (customerState is CustomerLoading) {
                             return const SizedBox(
                               height: 48,
-                              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
                             );
                           }
                           final customers = customerState is CustomerLoaded
@@ -147,7 +177,10 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
                             isExpanded: true,
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                             ),
                             hint: const Text('Pilih Customer'),
                             items: customers.map<DropdownMenuItem<int>>((c) {
@@ -162,7 +195,8 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
                             onChanged: (val) {
                               setStateDialog(() => selectedCustomerId = val);
                             },
-                            validator: (v) => v == null ? 'Wajib pilih customer' : null,
+                            validator: (v) =>
+                                v == null ? 'Wajib pilih customer' : null,
                           );
                         },
                       ),
@@ -175,12 +209,19 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
                       ),
                       const SizedBox(height: 4),
                       FutureBuilder<List<ServiceModel>>(
-                        future: context.read<ServiceApiService>().getAllServices(),
+                        future: context
+                            .read<ServiceApiService>()
+                            .getAllServices(),
                         builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
                             return const SizedBox(
                               height: 48,
-                              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
                             );
                           }
                           final services = snapshot.data ?? [];
@@ -190,12 +231,27 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
                               style: TextStyle(color: Colors.red, fontSize: 12),
                             );
                           }
+
+                          // PERBAIKAN LOGIKA: Pasangkan objek service asli saat data Future selesai dimuat
+                          if (selectedServiceId != null &&
+                              selectedService == null) {
+                            final found = services.where(
+                              (s) => s.id == selectedServiceId,
+                            );
+                            if (found.isNotEmpty) {
+                              selectedService = found.first;
+                            }
+                          }
+
                           return DropdownButtonFormField<int>(
                             value: selectedService?.id,
                             isExpanded: true,
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                             ),
                             hint: const Text('Pilih Layanan'),
                             items: services.map<DropdownMenuItem<int>>((s) {
@@ -209,11 +265,15 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
                             }).toList(),
                             onChanged: (val) {
                               setStateDialog(() {
-                                selectedService = services.firstWhere((s) => s.id == val);
-                                _updatePrice();
+                                selectedService = services.firstWhere(
+                                  (s) => s.id == val,
+                                );
+                                selectedServiceId = val;
+                                updatePrice();
                               });
                             },
-                            validator: (v) => v == null ? 'Wajib pilih layanan' : null,
+                            validator: (v) =>
+                                v == null ? 'Wajib pilih layanan' : null,
                           );
                         },
                       ),
@@ -227,7 +287,8 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
                           border: OutlineInputBorder(),
                         ),
                         keyboardType: TextInputType.number,
-                        validator: (v) => v == null || v.isEmpty ? 'Wajib diisi' : null,
+                        validator: (v) =>
+                            v == null || v.isEmpty ? 'Wajib diisi' : null,
                       ),
                       const SizedBox(height: 12),
 
@@ -235,11 +296,12 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
                       TextFormField(
                         controller: yearController,
                         decoration: const InputDecoration(
-                          labelText: 'Tahun (contoh: 2025)',
+                          labelText: 'Tahun',
                           border: OutlineInputBorder(),
                         ),
                         keyboardType: TextInputType.number,
-                        validator: (v) => v == null || v.isEmpty ? 'Wajib diisi' : null,
+                        validator: (v) =>
+                            v == null || v.isEmpty ? 'Wajib diisi' : null,
                       ),
                       const SizedBox(height: 12),
 
@@ -251,11 +313,12 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
                           border: OutlineInputBorder(),
                         ),
                         keyboardType: TextInputType.number,
-                        validator: (v) => v == null || v.isEmpty ? 'Wajib diisi' : null,
+                        validator: (v) =>
+                            v == null || v.isEmpty ? 'Wajib diisi' : null,
                       ),
                       const SizedBox(height: 12),
 
-                      // ─── Usage Value ───────────────────
+                      // ─── Pemakaian (Usage Value) ───────────────────
                       TextFormField(
                         controller: usageController,
                         decoration: const InputDecoration(
@@ -264,10 +327,12 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
                           suffixText: 'm³',
                         ),
                         keyboardType: TextInputType.number,
-                        validator: (v) => v == null || v.isEmpty ? 'Wajib diisi' : null,
+                        validator: (v) =>
+                            v == null || v.isEmpty ? 'Wajib diisi' : null,
                         onChanged: (_) {
-                          _updatePrice();
-                          setStateDialog(() {}); 
+                          setStateDialog(() {
+                            updatePrice();
+                          });
                         },
                       ),
                       const SizedBox(height: 12),
@@ -281,7 +346,8 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
                           prefixText: 'Rp ',
                         ),
                         keyboardType: TextInputType.number,
-                        validator: (v) => v == null || v.isEmpty ? 'Wajib diisi' : null,
+                        validator: (v) =>
+                            v == null || v.isEmpty ? 'Wajib diisi' : null,
                       ),
                       const SizedBox(height: 16),
                     ],
@@ -312,7 +378,9 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
                       };
 
                       if (isEditing) {
-                        context.read<BillBloc>().add(UpdateBillEvent(bill.id, data));
+                        context.read<BillBloc>().add(
+                          UpdateBillEvent(bill.id, data),
+                        );
                       } else {
                         context.read<BillBloc>().add(CreateBillEvent(data));
                       }
@@ -333,53 +401,195 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
   // DETAIL BILL
   // ────────────────────────────────────────────────────────────
   void _showBillDetail(BillModel bill) {
+    final paymentState = context.read<PaymentBloc>().state;
+    PaymentModel? relatedPayment;
+    if (paymentState is PaymentLoaded) {
+      try {
+        relatedPayment = paymentState.payments.firstWhere(
+          (p) => p.billId == bill.id,
+        );
+      } catch (e) {}
+    } else if (paymentState is PaymentLoadingMore) {
+      try {
+        relatedPayment = paymentState.payments.firstWhere(
+          (p) => p.billId == bill.id,
+        );
+      } catch (e) {}
+    }
+
+    String status = 'BELUM LUNAS';
+    Color statusColor = const Color(0xFFFA4D5E);
+    Color bgColor = const Color(0xFFFFE5E8);
+    if (bill.paid) {
+      status = 'LUNAS';
+      statusColor = const Color(0xFF52B640);
+      bgColor = const Color(0xFFE8F6E3);
+    } else if (relatedPayment != null && !relatedPayment.verified) {
+      status = 'MENUNGGU VERIFIKASI';
+      statusColor = const Color(0xFFFACC15);
+      bgColor = const Color(0xFFFEF9C3);
+    }
+
     showDialog(
       context: context,
       builder: (detailCtx) {
-        return AlertDialog(
-          title: const Text('Detail Tagihan'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _detailRow('ID', '#${bill.id}'),
-              _detailRow('Customer ID', '${bill.customerId}'),
-              _detailRow('Bulan/Tahun', '${bill.month}/${bill.year}'),
-              _detailRow('No Meteran', bill.measurementNumber),
-              _detailRow('Pemakaian', '${bill.usageValue} m³'),
-              _detailRow('Total Harga', _currencyFormat.format(bill.price)),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Text('Status: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: bill.paid ? Colors.green : Colors.orange,
-                      borderRadius: BorderRadius.circular(12),
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const SizedBox(width: 40),
+                    const Expanded(
+                      child: Text(
+                        'Info Tagihan',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF242E49),
+                        ),
+                      ),
                     ),
+                    if (status != 'BELUM LUNAS')
+                      InkWell(
+                        onTap: () => Navigator.pop(detailCtx),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFA4D5E),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      )
+                    else
+                      const SizedBox(width: 40),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Divider(color: Colors.grey.shade200),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.transparent),
+                  ),
+                  child: Column(
+                    children: [
+                      _detailRow('ID:', bill.id.toString()),
+                      _detailRow('Customer ID:', bill.customerId.toString()),
+                      _detailRow(
+                        'Bulan/Tahun:',
+                        '${getNamaBulan(bill.month)} ${bill.year}',
+                      ),
+                      _detailRow('No Meteran:', bill.measurementNumber),
+                      _detailRow('Pemakaian:', '${bill.usageValue} m³'),
+                      _detailRow(
+                        'Total Harga:',
+                        currencyFormat.format(bill.price),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Expanded(
+                              flex: 2,
+                              child: Text(
+                                'Status:',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 3,
+                              child: Text(
+                                status,
+                                textAlign: TextAlign.right,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: statusColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: statusColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      elevation: 0,
+                    ),
+                    onPressed: () {
+                      if (status == 'LUNAS' &&
+                          relatedPayment != null &&
+                          relatedPayment.file.isNotEmpty) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => FullScreenImagePage(
+                              imageUrl:
+                                  '${ApiConstants.baseUrl}/payment-proof/${Uri.encodeComponent(relatedPayment!.file)}',
+                              tag: 'payment_image_admin_${relatedPayment!.id}',
+                            ),
+                          ),
+                        );
+                      } else if (status == 'MENUNGGU VERIFIKASI' &&
+                          relatedPayment != null) {
+                        context.read<PaymentBloc>().add(
+                          VerifyPaymentEvent(relatedPayment!.id),
+                        );
+                        Navigator.pop(detailCtx);
+                      } else {
+                        Navigator.pop(detailCtx);
+                      }
+                    },
                     child: Text(
-                      bill.paid ? 'LUNAS' : 'BELUM LUNAS',
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                      status == 'LUNAS'
+                          ? 'Lihat Bukti Pembayaran'
+                          : (status == 'MENUNGGU VERIFIKASI'
+                                ? 'Verifikasi'
+                                : 'Tutup'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(detailCtx),
-              child: const Text('Tutup'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(detailCtx);
-                _showBillForm(bill);
-              },
-              child: const Text('Edit'),
-            ),
-          ],
         );
       },
     );
@@ -438,21 +648,28 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
                               child: Center(child: CircularProgressIndicator()),
                             );
                           },
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            height: 200,
-                            color: Colors.grey.shade200,
-                            child: const Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.broken_image, size: 50, color: Colors.grey),
-                                  SizedBox(height: 8),
-                                  Text('Gambar tidak ditemukan',
-                                      style: TextStyle(color: Colors.grey)),
-                                ],
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                                height: 200,
+                                color: Colors.grey.shade200,
+                                child: const Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.broken_image,
+                                        size: 50,
+                                        color: Colors.grey,
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        'Gambar tidak ditemukan',
+                                        style: TextStyle(color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
                         ),
                       ),
                     ),
@@ -462,16 +679,25 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Text('Status: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Status: ',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: payment.verified ? Colors.green : Colors.orange,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         payment.verified ? 'TERVERIFIKASI' : 'MENUNGGU',
-                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
@@ -488,10 +714,15 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                 onPressed: () {
-                  context.read<PaymentBloc>().add(VerifyPaymentEvent(payment.id));
+                  context.read<PaymentBloc>().add(
+                    VerifyPaymentEvent(payment.id),
+                  );
                   Navigator.pop(detailCtx);
                 },
-                child: const Text('Verifikasi', style: TextStyle(color: Colors.white)),
+                child: const Text(
+                  'Verifikasi',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
           ],
         );
@@ -501,15 +732,33 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
 
   Widget _detailRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 100,
-            child: Text('$label:', style: const TextStyle(fontWeight: FontWeight.bold)),
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF64748B),
+              ),
+            ),
           ),
-          Expanded(child: Text(value)),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF242E49),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -518,214 +767,85 @@ class _AdminTransactionPageState extends State<AdminTransactionPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
         automaticallyImplyLeading: false,
-        title: const Text('Admin Transaksi'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Bills (Tagihan)'),
-            Tab(text: 'Payments (Pembayaran)'),
-          ],
+        title: const Text(
+          'Admin Transaksi',
+          style: TextStyle(
+            color: Color(0xFF242E49),
+            fontWeight: FontWeight.w700,
+          ),
         ),
+        centerTitle: true,
       ),
       body: MultiBlocListener(
         listeners: [
           BlocListener<BillBloc, BillState>(
             listener: (context, state) {
               if (state is BillOperationSuccess) {
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text(state.message)));
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(state.message)));
               } else if (state is BillError) {
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text(state.message)));
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(state.message)));
               }
             },
           ),
           BlocListener<PaymentBloc, PaymentState>(
             listener: (context, state) {
               if (state is PaymentOperationSuccess) {
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text(state.message)));
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(state.message)));
               } else if (state is PaymentError) {
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text(state.message)));
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(state.message)));
               }
             },
           ),
         ],
-        child: TabBarView(
-          controller: _tabController,
+        child: Column(
           children: [
-            // ── TAB 1: BILLS ──────────────────────────────────
-            Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      labelText: 'Cari ID / No. Meteran...',
-                      border: const OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          context.read<BillBloc>().add(const SearchBillById(''));
-                        },
-                      ),
-                    ),
-                    onChanged: (value) {
-                      context.read<BillBloc>().add(SearchBillById(value));
-                    },
-                  ),
-                ),
-                Expanded(
-                  child: BlocBuilder<BillBloc, BillState>(
-                    builder: (context, state) {
-                      if (state is BillLoading || state is BillOperationLoading) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-
-                      List<BillModel> bills = [];
-                      bool isLoadingMore = false;
-                      bool hasReachedMax = false;
-
-                      if (state is BillLoaded) {
-                        bills = state.bills;
-                        hasReachedMax = state.hasReachedMax;
-                      } else if (state is BillLoadingMore) {
-                        bills = state.bills;
-                        isLoadingMore = true;
-                      }
-
-                      if (bills.isEmpty) {
-                        return const Center(child: Text('Tidak ada tagihan'));
-                      }
-
-                      return ListView.builder(
-                        controller: _billScrollController,
-                        itemCount: bills.length + (isLoadingMore ? 1 : 0) + (hasReachedMax && bills.isNotEmpty ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (isLoadingMore && index == bills.length) {
-                            return const Padding(
-                              padding: EdgeInsets.all(16),
-                              child: Center(child: CircularProgressIndicator()),
-                            );
-                          }
-                          if (hasReachedMax && index == bills.length) {
-                            return const Padding(
-                              padding: EdgeInsets.all(12),
-                              child: Center(
-                                child: Text(
-                                  'Semua data telah ditampilkan',
-                                  style: TextStyle(color: Colors.grey),
-                                ),
-                              ),
-                            );
-                          }
-                          final b = bills[index];
-                          return Card(
-                            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: b.paid ? Colors.green.shade100 : Colors.orange.shade100,
-                                child: Icon(
-                                  b.paid ? Icons.check_circle : Icons.warning_amber,
-                                  color: b.paid ? Colors.green : Colors.orange,
-                                ),
-                              ),
-                              title: Text('Bill #${b.id} — Customer: ${b.customerId}'),
-                              subtitle: Text(
-                                'Bulan: ${b.month}/${b.year} | ${_currencyFormat.format(b.price)}',
-                              ),
-                              trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-                              onTap: () => _showBillDetail(b),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
+            CustomTabBar(
+              tabController: _tabController,
+              tabs: const ['Input Bill', 'Verifikasi Bayar'],
             ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  // ── TAB 1: BILLS ──────────────────────────────────
+                  AdminBillsTab(
+                    searchController: _searchController,
+                    scrollController: _billScrollController,
+                    onShowDetail: _showBillDetail,
+                  ),
 
-            // ── TAB 2: PAYMENTS ──────────────────────────────
-            BlocBuilder<PaymentBloc, PaymentState>(
-              builder: (context, state) {
-                if (state is PaymentLoading || state is PaymentOperationLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                List<PaymentModel> payments = [];
-                bool isLoadingMore = false;
-                bool hasReachedMax = false;
-
-                if (state is PaymentLoaded) {
-                  payments = state.payments;
-                  hasReachedMax = state.hasReachedMax;
-                } else if (state is PaymentLoadingMore) {
-                  payments = state.payments;
-                  isLoadingMore = true;
-                }
-
-                if (payments.isEmpty) {
-                  return const Center(child: Text('Tidak ada data pembayaran'));
-                }
-
-                return ListView.builder(
-                  controller: _paymentScrollController,
-                  itemCount: payments.length + (isLoadingMore ? 1 : 0) + (hasReachedMax && payments.isNotEmpty ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (isLoadingMore && index == payments.length) {
-                      return const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-                    if (hasReachedMax && index == payments.length) {
-                      return const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Center(
-                          child: Text(
-                            'Semua data telah ditampilkan',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ),
-                      );
-                    }
-                    final p = payments[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: p.verified ? Colors.green.shade100 : Colors.orange.shade100,
-                          child: Icon(
-                            p.verified ? Icons.verified : Icons.hourglass_top,
-                            color: p.verified ? Colors.green : Colors.orange,
-                          ),
-                        ),
-                        title: Text('Payment #${p.id} (Bill: ${p.billId})'),
-                        subtitle: Text(
-                          p.verified ? 'TERVERIFIKASI' : 'MENUNGGU VERIFIKASI',
-                        ),
-                        trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-                        onTap: () => _showPaymentDetail(p),
-                      ),
-                    );
-                  },
-                );
-              },
+                  // ── TAB 2: PAYMENTS ──────────────────────────────
+                  AdminPaymentsTab(scrollController: _paymentScrollController),
+                ],
+              ),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showBillForm(),
-        icon: const Icon(Icons.add),
-        label: const Text('Tambah Tagihan'),
-      ),
+      floatingActionButton: _tabController.index == 0
+          ? FloatingActionButton.extended(
+              backgroundColor: Color(0xff0F67FE),
+              onPressed: () => _showBillForm(),
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text(
+                'Tambah Tagihan',
+                style: TextStyle(color: Colors.white),
+              ),
+            )
+          : null,
       bottomNavigationBar: const NavModelCustom(currentIndex: 3),
     );
   }

@@ -1,14 +1,17 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotted/flutter_dotted.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uklmobileapps/features/customer/presentation/bloc/customer_me_bloc.dart';
 import 'package:uklmobileapps/features/customer/presentation/bloc/customer_me_event.dart';
 import 'package:uklmobileapps/features/customer/presentation/bloc/customer_me_state.dart';
 import 'package:uklmobileapps/features/bill/data/models/bill_model.dart';
+import 'package:uklmobileapps/features/customer/presentation/widgets/CustomTabBar.dart';
+import 'package:uklmobileapps/features/customer/presentation/widgets/history_tab_view.dart';
+import 'package:uklmobileapps/features/customer/presentation/widgets/unpaid_tab_view.dart';
 import 'package:uklmobileapps/shared/widgets/customer_nav_custom.dart';
-import 'package:uklmobileapps/shared/widgets/full_screen_image_page.dart';
-import 'package:uklmobileapps/core/network/api_constants.dart';
 
 class CustomerBillPage extends StatefulWidget {
   const CustomerBillPage({super.key});
@@ -17,18 +20,20 @@ class CustomerBillPage extends StatefulWidget {
   State<CustomerBillPage> createState() => _CustomerBillPageState();
 }
 
-class _CustomerBillPageState extends State<CustomerBillPage> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _CustomerBillPageState extends State<CustomerBillPage>
+    with TickerProviderStateMixin {
   final ImagePicker _picker = ImagePicker();
   final ScrollController _paymentScrollController = ScrollController();
   int? _selectedUnpaidBillId;
+  late TabController _tabController;
 
-  // Pagination state for history tab
   final List _allPayments = [];
   int _paymentPage = 1;
   bool _paymentLoading = false;
   bool _paymentHasMore = true;
   static const int _pageSize = 10;
+
+  CustomerDashboardLoaded? _lastLoadedDashboardState;
 
   @override
   void initState() {
@@ -44,25 +49,25 @@ class _CustomerBillPageState extends State<CustomerBillPage> with SingleTickerPr
     });
   }
 
-  void _loadData() {
+  // Mengubah menjadi Future<void> agar kompatibel dengan RefreshIndicator
+  Future<void> _loadData() async {
     context.read<CustomerMeBloc>().add(FetchDashboardData());
-    // Reset and load first page of payments
     setState(() {
       _allPayments.clear();
       _paymentPage = 1;
       _paymentHasMore = true;
     });
-    _loadMorePayments();
+    await _loadMorePayments();
   }
 
   Future<void> _loadMorePayments() async {
     if (_paymentLoading || !_paymentHasMore) return;
     setState(() => _paymentLoading = true);
     try {
-      final payments = await context.read<CustomerMeBloc>().apiService.getMyPayments(
-        page: _paymentPage,
-        limit: _pageSize,
-      );
+      final payments = await context
+          .read<CustomerMeBloc>()
+          .apiService
+          .getMyPayments(page: _paymentPage, limit: _pageSize);
       if (!mounted) return;
       setState(() {
         _allPayments.addAll(payments);
@@ -85,70 +90,349 @@ class _CustomerBillPageState extends State<CustomerBillPage> with SingleTickerPr
 
   void _showUploadDialog(BillModel bill) async {
     File? selectedImage;
+    bool isSizeValid = true;
+    const int maxFileSizeBytes = 10 * 1024 * 1024;
 
     showDialog(
       context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          child: StatefulBuilder(
+            builder: (context, setStateDialog) {
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Unggah Bukti\nPembayaran',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF242E49),
+                            height: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'ID Tagihan: ${bill.measurementNumber}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF707E94),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        FlutterDotted(
+                          color: !isSizeValid
+                              ? Colors.red
+                              : const Color(0xFFCBD5E1),
+                          gap: 4,
+                          strokeWidth: 3,
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Column(
+                              children: [
+                                if (selectedImage != null && isSizeValid) ...[
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Image.file(
+                                      selectedImage!,
+                                      height: 120,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                ] else ...[
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF3B82F6),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.add_to_photos_rounded,
+                                      color: Colors.white,
+                                      size: 28,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  const Text(
+                                    'PNG/JPG\ntidak lebih dari 10mb',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF475569),
+                                      height: 1.3,
+                                    ),
+                                  ),
+                                ],
+                                if (!isSizeValid) ...[
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'Ukuran file terlalu besar! Maksimal 10 MB.',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                                const SizedBox(height: 16),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    OutlinedButton.icon(
+                                      onPressed: () async {
+                                        final picked = await _picker.pickImage(
+                                          source: ImageSource.camera,
+                                          imageQuality: 80,
+                                        );
+                                        if (picked != null) {
+                                          final file = File(picked.path);
+                                          final int fileSize = file
+                                              .lengthSync();
+                                          setStateDialog(() {
+                                            selectedImage = file;
+                                            isSizeValid =
+                                                fileSize <= maxFileSizeBytes;
+                                          });
+                                        }
+                                      },
+                                      style: OutlinedButton.styleFrom(
+                                        side: const BorderSide(
+                                          color: Color(0xFF3B82F6),
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            30,
+                                          ),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 8,
+                                        ),
+                                      ),
+                                      icon: const Icon(
+                                        Icons.camera_alt_outlined,
+                                        size: 16,
+                                        color: Color(0xFF3B82F6),
+                                      ),
+                                      label: const Text(
+                                        'kamera',
+                                        style: TextStyle(
+                                          color: Color(0xFF3B82F6),
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    OutlinedButton.icon(
+                                      onPressed: () async {
+                                        final picked = await _picker.pickImage(
+                                          source: ImageSource.gallery,
+                                        );
+                                        if (picked != null) {
+                                          final file = File(picked.path);
+                                          final int fileSize = file
+                                              .lengthSync();
+                                          setStateDialog(() {
+                                            selectedImage = file;
+                                            isSizeValid =
+                                                fileSize <= maxFileSizeBytes;
+                                          });
+                                        }
+                                      },
+                                      style: OutlinedButton.styleFrom(
+                                        side: const BorderSide(
+                                          color: Color(0xFF3B82F6),
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            30,
+                                          ),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 8,
+                                        ),
+                                      ),
+                                      icon: const Icon(
+                                        Icons.upload_outlined,
+                                        size: 16,
+                                        color: Color(0xFF3B82F6),
+                                      ),
+                                      label: const Text(
+                                        'upload',
+                                        style: TextStyle(
+                                          color: Color(0xFF3B82F6),
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Text(
+                            'Unggah bukti transfer bank resmi. Pastikan gambar beresolusi jelas dan tidak terpotong.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF64748B),
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed: selectedImage == null || !isSizeValid
+                                ? null
+                                : () async {
+                                    context.read<CustomerMeBloc>().add(
+                                      UploadPaymentProof(
+                                        bill.id,
+                                        selectedImage!.path,
+                                      ),
+                                    );
+
+                                    Navigator.pop(ctx);
+
+                                    await Future.delayed(
+                                      const Duration(milliseconds: 350),
+                                    );
+
+                                    if (mounted) {
+                                      _showSuccessDialog();
+                                    }
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1E293B),
+                              disabledBackgroundColor: const Color(0xFFCBD5E1),
+                              disabledForegroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: const Text(
+                              'Kirim Bukti Pembayaran',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Positioned(
+                    top: 20,
+                    right: 20,
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(ctx),
+                      child: SvgPicture.asset(
+                        "assets/Close.svg",
+                        colorFilter: const ColorFilter.mode(
+                          Color(0xFFFA4D5E),
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      useRootNavigator: true,
       barrierDismissible: false,
       builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              title: const Text('Upload Bukti Bayar'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('Unggah bukti transfer bank resmi. Pastikan gambar jelas dan tidak terpotong.', textAlign: TextAlign.center),
-                  const SizedBox(height: 16),
-                  if (selectedImage != null)
-                    Image.file(selectedImage!, height: 150, fit: BoxFit.cover)
-                  else
-                    Container(
-                      height: 150,
-                      width: double.infinity,
-                      color: Colors.grey.shade200,
-                      child: const Icon(Icons.image, size: 50, color: Colors.grey),
-                    ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: () async {
-                          final picked = await _picker.pickImage(source: ImageSource.camera);
-                          if (picked != null) setStateDialog(() => selectedImage = File(picked.path));
-                        },
-                        icon: const Icon(Icons.camera_alt),
-                        label: const Text('Kamera'),
-                      ),
-                      ElevatedButton.icon(
-                        onPressed: () async {
-                          final picked = await _picker.pickImage(source: ImageSource.gallery);
-                          if (picked != null) setStateDialog(() => selectedImage = File(picked.path));
-                        },
-                        icon: const Icon(Icons.photo_library),
-                        label: const Text('Galeri'),
-                      ),
-                    ],
-                  )
-                ],
+        return Dialog.fullscreen(
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: SvgPicture.asset(
+                  'assets/Succes_page.svg',
+                  fit: BoxFit.cover,
+                ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Batal'),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 32,
+                  ),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(ctx, rootNavigator: true).pop();
+                        _loadData();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF1D4ED8),
+                        elevation: 2,
+                        shadowColor: Colors.black.withOpacity(0.1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      child: const Text(
+                        'Selesai',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1D4ED8),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                ElevatedButton(
-                  onPressed: selectedImage == null
-                      ? null
-                      : () {
-                          context.read<CustomerMeBloc>().add(UploadPaymentProof(bill.id, selectedImage!.path));
-                          Navigator.pop(ctx);
-                        },
-                  child: const Text('Upload'),
-                ),
-              ],
-            );
-          },
+              ),
+            ],
+          ),
         );
       },
     );
@@ -157,47 +441,109 @@ class _CustomerBillPageState extends State<CustomerBillPage> with SingleTickerPr
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true, 
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
         automaticallyImplyLeading: false,
-        title: const Text('Tagihan & Pembayaran'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Belum Bayar'),
-            Tab(text: 'Riwayat'),
-          ],
+        title: const Text(
+          'Tagihan Air Anda',
+          style: TextStyle(
+            color: Color(0xFF242E49),
+            fontWeight: FontWeight.w700,
+            fontSize: 22,
+            height: 1.27,
+          ),
         ),
+        centerTitle: true,
       ),
       body: BlocConsumer<CustomerMeBloc, CustomerMeState>(
         listener: (context, state) {
-          if (state is CustomerMeOperationSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message)));
-            _loadData();
-          } else if (state is CustomerMeError) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message)));
+          if (state is CustomerMeError) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.message)));
+          }
+
+          if (state is CustomerDashboardLoaded) {
+            _lastLoadedDashboardState = state;
+
+            final unpaidBills = state.bills.where((b) => !b.paid).toList();
+            if (_selectedUnpaidBillId == null && unpaidBills.isNotEmpty) {
+              setState(() {
+                _selectedUnpaidBillId = unpaidBills.first.id;
+              });
+            }
           }
         },
         builder: (context, state) {
-          if (state is CustomerMeLoading || state is CustomerMeOperationLoading) {
+          if (state is CustomerMeLoading ||
+              state is CustomerMeOperationLoading) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (state is CustomerDashboardLoaded) {
-            final unpaidBills = state.bills.where((b) => !b.paid).toList();
-            // In a real app we'd fetch payments from state.payments, but DashboardLoaded only has bills and profile.
-            // Let's refetch or use a different state strategy. 
-            // Wait, CustomerDashboardLoaded doesn't have payments!
-            // I should have CustomerMeBloc fetch payments as well in FetchDashboardData, or trigger it.
+
+          if (state is CustomerDashboardLoaded ||
+              _lastLoadedDashboardState != null) {
+            final displayState = state is CustomerDashboardLoaded
+                ? state
+                : _lastLoadedDashboardState!;
+
+            return Column(
+              children: [
+                CustomTabBar(tabController: _tabController),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      // Perubahan Utama: Menambahkan RefreshIndicator untuk fitur seret bawah (Pull-to-Refresh)
+                      RefreshIndicator(
+                        onRefresh: _loadData,
+                        color: const Color(0xFF3B82F6),
+                        backgroundColor: Colors.white,
+                        child: UnpaidTabView(
+                          state: displayState,
+                          selectedUnpaidBillId: _selectedUnpaidBillId,
+                          onBillSelected: (val) {
+                            setState(() {
+                              _selectedUnpaidBillId = val;
+                            });
+                          },
+                          onUploadPressed: _showUploadDialog,
+                        ),
+                      ),
+                      HistoryTabView(
+                        allPayments: _allPayments,
+                        paymentLoading: _paymentLoading,
+                        paymentHasMore: _paymentHasMore,
+                        scrollController: _paymentScrollController,
+                        onRefresh: () async => _loadData(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
           }
-          
-          return TabBarView(
-            controller: _tabController,
+
+          return Column(
             children: [
-              // TAB 1: BELUM BAYAR
-              _buildUnpaidTab(state),
-              
-              // TAB 2: RIWAYAT
-              _buildHistoryTab(),
+              CustomTabBar(tabController: _tabController),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: _loadData,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Container(
+                      height: MediaQuery.of(context).size.height * 0.6,
+                      alignment: Alignment.center,
+                      child: const Text(
+                        'Gagal memuat data atau tidak ada data tagihan.\nTarik ke bawah untuk memuat ulang.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           );
         },
@@ -205,230 +551,4 @@ class _CustomerBillPageState extends State<CustomerBillPage> with SingleTickerPr
       bottomNavigationBar: const CustomerNavCustom(currentIndex: 1),
     );
   }
-
-  Widget _buildUnpaidTab(CustomerMeState state) {
-    if (state is CustomerDashboardLoaded) {
-      final unpaid = state.bills.where((b) => !b.paid).toList();
-      if (unpaid.isEmpty) return const Center(child: Text('Tidak ada tagihan tertunggak.'));
-      
-      // Select the first unpaid bill by default if not yet selected
-      if (_selectedUnpaidBillId == null && unpaid.isNotEmpty) {
-        // We use Future.microtask to avoid calling setState during build phase
-        Future.microtask(() {
-          if (mounted) setState(() => _selectedUnpaidBillId = unpaid.first.id);
-        });
-      }
-
-      final selectedBill = unpaid.firstWhere(
-        (b) => b.id == _selectedUnpaidBillId,
-        orElse: () => unpaid.first,
-      );
-
-      return Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Pilih Tagihan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<int>(
-                  value: _selectedUnpaidBillId,
-                  isExpanded: true,
-                  hint: const Text('Pilih Bulan Tagihan'),
-                  items: unpaid.map((b) {
-                    return DropdownMenuItem<int>(
-                      value: b.id,
-                      child: Text('Bulan ${b.month}/${b.year} - No. ${b.measurementNumber}'),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    setState(() {
-                      _selectedUnpaidBillId = val;
-                    });
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            if (_selectedUnpaidBillId != null)
-              Card(
-                elevation: 4,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Rincian Tagihan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      const Divider(),
-                      const SizedBox(height: 8),
-                      Text('Bulan / Tahun: ${selectedBill.month}/${selectedBill.year}'),
-                      const SizedBox(height: 4),
-                      Text('Nomor Meteran: ${selectedBill.measurementNumber}'),
-                      const SizedBox(height: 4),
-                      Text('Pemakaian: ${selectedBill.usageValue} m³'),
-                      const SizedBox(height: 8),
-                      Text('Total Pembayaran: Rp ${selectedBill.price}', 
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue)),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _showUploadDialog(selectedBill),
-                          icon: const Icon(Icons.upload_file),
-                          label: const Text('Upload Bukti Bayar'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            const SizedBox(height: 120),
-          ],
-        ),
-      );
-    }
-    return const Center(child: Text('Memuat data...'));
-  }
-
-
-  Widget _buildHistoryTab() {
-    if (_allPayments.isEmpty && _paymentLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_allPayments.isEmpty && !_paymentLoading) {
-      return const Center(child: Text('Belum ada riwayat pembayaran.'));
-    }
-
-    return RefreshIndicator(
-      onRefresh: () async => _loadData(),
-      child: ListView.builder(
-        controller: _paymentScrollController,
-        padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 120),
-        itemCount: _allPayments.length + (_paymentLoading || _paymentHasMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == _allPayments.length) {
-            // Footer: loading atau "semua sudah dimuat"
-            if (_paymentLoading) {
-              return const Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(child: CircularProgressIndicator()),
-              );
-            }
-            return const Padding(
-              padding: EdgeInsets.all(12),
-              child: Center(
-                child: Text(
-                  'Semua riwayat telah ditampilkan',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ),
-            );
-          }
-
-          final p = _allPayments[index];
-          return Card(
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: p.verified ? Colors.green.shade100 : Colors.orange.shade100,
-                child: Icon(
-                  p.verified ? Icons.verified : Icons.hourglass_top,
-                  color: p.verified ? Colors.green : Colors.orange,
-                  size: 20,
-                ),
-              ),
-              title: Text('Tagihan #${p.billId}'),
-              subtitle: Text('Dibuat: ${p.createdAt}'),
-              trailing: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: p.verified ? Colors.green : Colors.orange,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  p.verified ? 'Berhasil' : 'Menunggu Admin',
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
-                ),
-              ),
-              onTap: () {
-                if (p.file.isEmpty) return;
-                showDialog(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text('Bukti Pembayaran'),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => FullScreenImagePage(
-                                  imageUrl:
-                                      '${ApiConstants.baseUrl}/payment-proof/${Uri.encodeComponent(p.file)}',
-                                  tag: 'payment_image_customer_${p.id}',
-                                ),
-                              ),
-                            );
-                          },
-                          child: Hero(
-                            tag: 'payment_image_customer_${p.id}',
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                '${ApiConstants.baseUrl}/payment-proof/${Uri.encodeComponent(p.file)}',
-                                cacheWidth: 800,
-                                fit: BoxFit.contain,
-                                loadingBuilder: (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return const SizedBox(
-                                    height: 150,
-                                    child: Center(child: CircularProgressIndicator()),
-                                  );
-                                },
-                                errorBuilder: (context, error, stackTrace) => Container(
-                                  height: 150,
-                                  color: Colors.grey.shade200,
-                                  child: const Center(
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.broken_image, size: 50, color: Colors.grey),
-                                        SizedBox(height: 8),
-                                        Text('Gambar tidak ditemukan',
-                                            style: TextStyle(color: Colors.grey)),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        child: const Text('Tutup'),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          );
-        },
-      ),
-    );
-  }
 }
-

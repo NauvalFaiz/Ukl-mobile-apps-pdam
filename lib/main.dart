@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import 'package:uklmobileapps/features/auth/presentation/views/login_page.dart';
@@ -29,6 +30,7 @@ import 'package:uklmobileapps/features/customer/presentation/views/customer_dash
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('id_ID');
 
   try {
     await dotenv.load(fileName: ".env");
@@ -121,13 +123,12 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         theme: ThemeData(
-          // Mengubah warna kursor dan warna blok teks (Ctrl+A) untuk semua inputan di aplikasi
           textSelectionTheme: TextSelectionThemeData(
-            cursorColor: const Color(0xFF1A6CFF), // Warna garis ketik berkedip
+            cursorColor: const Color(0xFF1A6CFF),
             selectionColor: const Color(
               0xFF1A6CFF,
               // ignore: deprecated_member_use
-            ).withOpacity(0.3), // Warna blok Ctrl+A
+            ).withOpacity(0.3), // Warna blok Select
             selectionHandleColor: const Color(
               0xFF1A6CFF,
             ), // Warna balon penarik seleksi di HP
@@ -135,7 +136,7 @@ class MyApp extends StatelessWidget {
         ),
         title: 'PDAM App Test',
         debugShowCheckedModeBanner: false,
-        home: const OnboardingScreen(),
+        home: const SplashScreen(),
         routes: {
           '/login': (context) => const LoginPage(),
           '/customer/dashboard': (context) => const CustomerDashboard(),

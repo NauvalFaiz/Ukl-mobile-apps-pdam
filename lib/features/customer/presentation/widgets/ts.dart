@@ -34,3 +34,12 @@ class ChartDataTransformer {
     }
   }
 }
+
+class AppDate {
+  static String format(DateTime date) {
+    return DateFormat(
+      'EEEE, dd MMM yyyy',
+      'id_ID',
+    ).format(date);
+  }
+}
